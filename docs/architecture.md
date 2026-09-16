@@ -2,88 +2,130 @@
 
 ## Product boundary
 
-The product is a persistent **Research Core**, not an LLM, website or MCP server. LLMs are cognitive workers; the website is a cockpit; MCP/HTTP are integration boundaries.
+The product is a persistent **Research Core**, not an LLM, website or MCP server. LLMs are cognitive workers; the website is a cockpit; MCP/HTTP/CLI are adapters.
+
+The architectural center is the Research Protocol and the durable Scientific Ledger, not a particular database or agent framework.
+
+## Control plane and work plane
 
 ```text
-                         User
-              +-----------+-----------+
-              |           |           |
-            Web UI       CLI      AI hosts/IDEs
-              |           |           |
-              +------ HTTP/MCP --------+
-                          |
-                    Research Core
-      +-------------------+-------------------+
-      | orchestrator | world model | control |
-      | scheduler    | claims      | tasks   |
-      +-------------------+-------------------+
-                          |
-       +------------------+------------------+
-       |                  |                  |
-  AI workers        Execution engine     Evidence engine
-       |                  |                  |
-       +------------------+------------------+
-                          |
-                   Scientific ledger
-             Git + DB + artifacts + logs
-                          |
-                   Semantic compiler
-                          |
-              trace / map / argument / export
+                         User / clients
+                    Web · CLI · MCP · API
+                              |
+                    RESEARCH CONTROL PLANE
+          +-------------------+------------------+
+          | Research Protocol | admission/policy |
+          | scheduler         | world projection |
+          | task authority    | query services   |
+          +-------------------+------------------+
+                              |
+             commands / tasks | observations / receipts
+                              |
+                    SCIENTIFIC WORK PLANE
+        +---------------------+---------------------+
+        | AI workers | Evidence engine | Execution |
+        +---------------------+---------------------+
+                              |
+                      SCIENTIFIC LEDGER
+          artifacts + execution evidence + events
+                              |
+                    projections / indexes
+        world model · semantic graph · map · trace
 ```
 
-## Core responsibilities
+The **Control Plane** decides which attempted changes may become accepted scientific state. The **Work Plane** performs bounded work that can generate evidence, execution receipts, critiques and proposals. Work-plane outputs do not become accepted state merely because a model produced them.
+
+## Authority matrix
+
+One meaning has one authority:
+
+| Meaning | Authoritative representation | Derived/operational representations |
+| --- | --- | --- |
+| Protocols, plans, decisions, code, authored scientific commitments | Git-versioned scientific artifacts | DB metadata, semantic graph, UI |
+| What actually executed and what it produced | immutable execution receipt + referenced immutable outputs/logs | run indexes, summaries, graph |
+| Accepted control transition, exposure, approval, rejection, supersession, task outcome material to state | append-only control event log | current-state tables, world model, UI |
+| Current active scientific orientation | derived world-model projection | prompt context, UI cards |
+| Semantic/retrieval relations | compiled index | graph/vector engine |
+
+The Scientific Ledger is the union of the first three authoritative classes. Storage technology may differ; semantic authority may not.
+
+## Research Core responsibilities
 
 Research Core owns:
 
-- project identity and lifecycle;
-- compact active world model;
-- scientific task scheduling;
-- control-state transitions and preflights;
-- evidence and claim admission;
-- execution registration;
-- model/tool routing;
-- durable event history;
-- query interfaces for status, why, changed, trace and map.
+- project and scientific entity identity;
+- command validation and accepted state transitions under `research-protocol.md`;
+- authority/capability envelopes;
+- scientific task scheduling and dependency/exposure rules;
+- evidence, result, inference and claim admission;
+- execution registration and receipt validation;
+- durable accepted-event history;
+- world-model projection/reconciliation;
+- query services for status, why, changed, trace and map;
+- model/tool routing without giving providers authority over state.
 
 It does not own scientific values that require human authority.
 
+## State flow
+
+```text
+client/worker proposes command or observation
+              |
+              v
+       validate identity, authority,
+       target version and prerequisites
+              |
+        +-----+------+
+        |            |
+      reject       accept
+                     |
+       persist required evidence/receipt
+                     |
+          append accepted domain event
+                     |
+             update/rebuild projections
+          world model / tasks / graph / UI
+```
+
+For a material transition, durable evidence must exist before or atomically with the accepted event that relies on it. A projection failure never invalidates the accepted ledger event; projections are repairable.
+
 ## Persistence
 
-Initial target:
+Initial implementation should minimize infrastructure while preserving semantic interfaces:
 
-- **Git/filesystem**: scientific artifacts, code, decisions, plans, documents, reproducible aggregates.
-- **PostgreSQL**: active world-model state, tasks, events, indexes, locks and operational relations in deployable mode.
-- **SQLite**: acceptable embedded/local implementation behind the same persistence interface for early slices.
-- **Object/filesystem storage**: large data, PDFs, logs and execution outputs.
-- **Vector retrieval**: optional and initially implemented with the primary database when practical; it is an index, never truth.
+- **Git/filesystem** for scientific artifacts and code;
+- **SQLite** is preferred for the first vertical slice for the control event log, projection tables, task metadata and locking/version checks;
+- **filesystem/object storage** for immutable outputs, source files and larger logs;
+- **PostgreSQL** is a deployable replacement when concurrency/operations justify it behind the same semantic contracts;
+- **vector retrieval** is optional and derived;
+- no graph database until query/performance evidence justifies one.
 
-No graph database is required until real query/performance evidence justifies one.
+This is not a mandate to implement event-sourcing infrastructure. It is a semantic requirement that accepted control transitions be durably append-only and projections rebuildable.
 
 ## Local-first, deployable later
 
-The architecture should support a local daemon/service colocated with a research repository and later support server deployment. Sensitive data and execution should be able to remain local while model/search calls are brokered through controlled adapters.
+The same Control Plane contract should support:
 
-## Model gateway
+- all-local operation;
+- local control + local private execution + remote model/search adapters;
+- deployed control plane + authorized local execution workers;
+- later distributed workers without changing scientific semantics.
 
-Models are selected by capability and task, not hard-coded identity. The gateway should eventually support at least:
+## Task, not persona, is the scheduling abstraction
 
-- high-reasoning tasks;
-- economical screening/ranking tasks;
-- code-oriented work;
-- long-context evidence synthesis.
+The primary unit is a **Scientific Task** with role, goal, target state, permitted context/evidence, capability envelope, expected output type, stop condition and budget. A model/agent is selected to execute the task. Roles described in `agents.md` are epistemic functions, not permanent services.
 
-Scientific state must remain stable when the provider changes.
+## Dependency direction
 
-## Scheduler
+Adapters -> application/control services -> protocol/domain model.
 
-The scheduler may run independent tasks in parallel, but parallelism must preserve scientific dependency and exposure rules. More agents are not automatically more independent; independence comes from role, objective and information separation.
+Work-plane adapters implement capabilities required by tasks and cannot import UI/MCP concerns into scientific semantics. Projections depend on accepted ledger state, never the reverse.
 
 ## Interfaces
 
-- HTTP/API for first-party UI and automation.
-- MCP for external AI clients and IDEs.
-- CLI for local lifecycle, diagnostics and scripting.
-- Web UI for world-model navigation, tasks, evidence, map and audit.
+- HTTP/API for first-party UI and automation;
+- MCP for external AI clients and IDEs;
+- CLI for local lifecycle, diagnostics, export and repair;
+- Web UI for scientific orientation and audit.
 
-The interface contract should remain thin over Research Core rather than duplicating scientific logic.
+Interfaces remain thin over Core so changing a client cannot bypass the Research Protocol.

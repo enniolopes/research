@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The world model is the compact active scientific state needed for coherent reasoning across long projects. It is not the complete project history and not a dump of the semantic graph.
+The world model is the compact active projection needed for coherent reasoning across long projects. It is not the complete project history, not the semantic graph and not an independently editable source of truth.
 
 It should answer quickly:
 
@@ -17,10 +17,10 @@ It should answer quickly:
 
 ## Minimal conceptual fields
 
-Initial implementation should stay small:
+Initial projection should stay small:
 
 - quest / active problem;
-- known findings with evidence references;
+- known findings with ledger evidence references;
 - open questions;
 - active hypotheses and rivals;
 - strongest support and strongest challenge per active hypothesis;
@@ -33,26 +33,40 @@ Initial implementation should stay small:
 
 Do not add fields merely to mirror an ontology.
 
+## Projection rule
+
+The world model is produced from accepted Research Protocol state and authoritative ledger references. Applications may cache/materialize it, but a direct write to the cache is not a scientific transition.
+
+```text
+authoritative artifacts + execution receipts + accepted control events
+                              |
+                              v
+                       projection logic
+                              |
+                              v
+                         world model
+```
+
+If the projection is deleted or corrupt, rebuild it from authoritative state. If reconstruction produces a different meaning from the cached model, authoritative state wins and the discrepancy is a defect to investigate.
+
 ## Three memory levels
 
-### Working model
+### Working context
 
-Small context supplied to the orchestrator/worker. It should contain only the state relevant to the current task.
+A still smaller task-scoped slice supplied to an orchestrator/worker. It contains only state relevant to the task and its controlled information set.
 
 ### Scientific ledger
 
-Complete durable record: protocols, plans, decisions, sources, inspected evidence, data identities, runs, results, checks, claims and reviews.
+Complete durable basis: scientific artifacts, execution evidence and accepted control events, plus referenced sources/outputs.
 
 ### Semantic/index layer
 
-Derived relations and retrieval structures used for queries such as trace, why, changed, map and argument. Loaded by query, not by default.
+Derived relations and retrieval structures for trace, why, changed, map and argument. Loaded by query, not by default.
 
 ## Admission rule
 
-Workers do not mutate accepted scientific belief directly. They submit typed observations/proposals with evidence references. Research Core validates the owning transition and then updates the active model and durable records.
-
-This boundary prevents a persuasive generator from treating its own narrative as established state.
+Workers do not mutate accepted scientific belief or the world model directly. They submit typed observations/proposals with ledger references; Research Core validates the owning transition, appends the accepted event when appropriate, then updates projections.
 
 ## Compression rule
 
-The world model is a lossy operational projection. Anything omitted from it must remain recoverable from the ledger. Compression may remove detail but may not reverse uncertainty, erase material contradiction or rewrite history.
+The world model is intentionally lossy. Omission may remove detail but may not reverse uncertainty, erase a material contradiction, erase a blocking commitment or rewrite history. Anything omitted remains recoverable from the ledger.
