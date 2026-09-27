@@ -1,0 +1,40 @@
+# RESEARCH.map — <research slug>
+
+## Layout
+- protocol: <path/to/protocol.md>
+- decisions: <path/to/decisions.md>
+- aggregates: <path/to/aggregates/>
+- documents: <path/to/paper/>
+- notebooks: <path/to/notebooks/>
+- references: <path/to/references.bib>
+- floor: <minimum cell size for anything under documents, e.g. 5>
+
+## Question
+<one line> → `<path/to/protocol.md#question>`   (that section carries the problem statement fields)
+Problem: PENDING   (then: SHOWN | NOT_SHOWN | INCONCLUSIVE → `<path/to/problem-brief.md>`)
+Registration: none
+
+## Hypotheses
+| Id | Prediction | Refutation | State | Pointer |
+|---|---|---|---|---|
+| H1 | <prediction> | <what refutes it> | — | `<path/to/protocol.md#h1>` |
+
+## Gates
+| Phase | State | Blocked by | Evidence |
+|---|---|---|---|
+| 1A Problem — formulate | pending | | <when reached: pointer to the budget decision, e.g. `decisions.md#d-1`> |
+| 1B Problem — demonstrate | pending | | <when reached: pointer to the problem brief> |
+| 2 Literature | pending | | <when reached: pointer to the verification log or references> |
+| 3 Protocol | pending | | <when reached: pointer to the frozen protocol section> |
+| 4 Data | pending | | <when reached: pointer to the linkage report> |
+| 5 Analysis | pending | | <when reached: pointer to the results aggregate> |
+| 6 Writing | pending | | <when reached: pointer to the manuscript> |
+| 7 Review | pending | | <when reached: pointer to the review verdict> |
+| 8 Publication | pending | | <when reached: the DOI> |
+
+## Deferred
+- <YYYY-MM-DD>: <idea, method or front that appeared after the freeze> — enters when: <what would have to be true>
+
+## Last session
+- <YYYY-MM-DD>: <what changed>
+- Next: <one concrete step>
