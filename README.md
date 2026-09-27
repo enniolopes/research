@@ -8,11 +8,21 @@ Scope: observational quantitative research, especially administrative data.
 
 Run Claude Code from the root of a **Git repository** for the research project. Git history records commitment/run order; exposure outside that history must be disclosed separately.
 
-Install once:
+Install the plugin from this repository:
 
 ```text
-Use this repository as the plugin source from a local Claude Code checkout. Install `explorer` separately if you want the optional structural exploration skill.
+/plugin marketplace add enniolopes/research
+/plugin install research@enniolopes
 ```
+
+For the full phase-1 exploration workflow, also install the optional `explorer` skill from the skills marketplace:
+
+```text
+/plugin marketplace add enniolopes/skills
+/plugin install explorer@enniolopes
+```
+
+Without `explorer`, the research system remains usable; the affected exploration is recorded as `NOT_VERIFIED` rather than invented.
 
 Start a new research project:
 
