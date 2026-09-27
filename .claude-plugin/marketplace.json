@@ -1,0 +1,17 @@
+{
+  "name": "research",
+  "description": "Standalone research system for Claude Code.",
+  "owner": {
+    "name": "Ennio Politi Lopes",
+    "url": "https://github.com/enniolopes"
+  },
+  "plugins": [
+    {
+      "name": "research",
+      "source": ".",
+      "version": "0.9.0",
+      "strict": false,
+      "description": "Epistemic control for empirical research with prospective commitments, provenance, claim lineage, statistical planning and adversarial review."
+    }
+  ]
+}
