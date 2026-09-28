@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Research 0.10 validator: operational checks plus executable run integrity and epistemic lineage."""
+"""Research validator: operational, epistemic, and optional semantic-integrity checks."""
 
 from __future__ import annotations
 
@@ -7,12 +7,14 @@ import argparse
 import sys
 from pathlib import Path
 
+import assessment
 import epistemic
 import validate as structural
 
 STRUCTURAL = {"map", "numbers", "decisions", "disclosure", "citations", "notebooks"}
 EPISTEMIC = {"plan", "runs", "lineage", "exposure"}
-ALL = STRUCTURAL | EPISTEMIC
+OPTIONAL = {"assessments"}
+ALL = STRUCTURAL | EPISTEMIC | OPTIONAL
 
 
 def run(map_path: Path, root: Path, offline: bool, min_int: int, only: set[str] | None):
@@ -20,11 +22,19 @@ def run(map_path: Path, root: Path, offline: bool, min_int: int, only: set[str] 
     epistemic_only = None if only is None else only & EPISTEMIC
     results = structural.run(map_path, root, offline, min_int, structural_only)
     results.extend(epistemic.run(map_path, root, epistemic_only))
+
+    assessment_dir = root / ".research" / "assessments"
+    if (only is not None and "assessments" in only) or (
+        only is None and assessment_dir.is_dir()
+    ):
+        results.append(assessment.check_assessments(root))
     return results
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Validate operational and epistemic integrity of a research repository.")
+    parser = argparse.ArgumentParser(
+        description="Validate operational and epistemic integrity of a research repository."
+    )
     parser.add_argument("map", nargs="?", default="RESEARCH.map")
     parser.add_argument("--root", help="repository root (default: the map's directory)")
     parser.add_argument("--offline", action="store_true", help="do not resolve citations; report NOT_VERIFIED")
