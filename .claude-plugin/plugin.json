@@ -1,7 +1,7 @@
 {
   "name": "research",
-  "version": "0.10.0",
-  "description": "Epistemic control system for empirical research: problem-first method, prospective scientific and executable commitments, append-only run provenance, derived claim lineage, statistical planning and adversarial review.",
+  "version": "0.11.0",
+  "description": "Epistemic control system for empirical research: prospective scientific/executable commitments, bounded semantic assessments, explicit capability policy, append-only provenance, claim lineage and adversarial review.",
   "author": {
     "name": "Ennio Politi Lopes"
   },
