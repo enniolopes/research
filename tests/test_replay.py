@@ -15,6 +15,7 @@ def load(name: str, relative: str):
     spec = importlib.util.spec_from_file_location(name, ROOT / relative)
     module = importlib.util.module_from_spec(spec)
     assert spec.loader
+    sys.modules[name] = module
     spec.loader.exec_module(module)
     return module
 
