@@ -161,7 +161,8 @@ A later finding can reopen an earlier phase. Skipping a required phase is a logg
 - `statistical-analysis` — estimand-first analysis plan, EDA boundary, dependence and missingness decisions.
 - `research-map` — operational memory and composed mechanical validation.
 - `research-graph` — in-memory lineage trace/why/changed queries.
-- `assessor` — optional tool-less semantic judgment for a versioned narrow assessment spec; it cannot act on its own answer.\n- `reviewer-2` — separate-context, non-editing adversarial review.
+- `assessor` — optional tool-less semantic judgment for a versioned narrow assessment spec; it cannot act on its own answer.
+- `reviewer-2` — separate-context, non-editing adversarial review.
 
 Invoke delegates; do not simulate them by reading their instructions. If a needed delegate cannot run, the affected check is `NOT_VERIFIED`.
 
