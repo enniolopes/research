@@ -82,7 +82,7 @@ The system handles the gates and preflights internally. If valid work can procee
 | `protocol.md` | Scientific question, hypotheses, estimands, and commitments |
 | `analysis-plan.md` | Primary tests, assumptions, checks, fallbacks, and interpretation limits |
 | `decisions.md` | Methodological decisions and revision conditions |
-| `.research/runs/` | What was executed, on which inputs, under which frozen commits |
+| `.research/runs/` | Append-only run receipts: what was executed, on which inputs, under which scientific/execution freezes |
 | `aggregates/` | Computed results |
 | `.research/reviews/` | Independent review evidence |
 | manuscript | Scientific communication |
@@ -93,7 +93,7 @@ Construct and mechanism claims explicitly connect measures to interpretations an
 
 ## What happens at important boundaries
 
-- **Before a confirmatory fit:** the system checks the estimand, primary test, assumptions/checks/failure actions, dependence, freezes, registration, and data exposure.
+- **Before a confirmatory fit:** the system checks the estimand, primary test, assumptions/checks/failure actions, dependence, scientific freezes, registration/data exposure, then freezes the executable state before the result is exposed.
 - **After a frozen-plan change:** the idea must become `SPECIFICATION`, `EXPLORATORY`, `DEFERRED`, or an explicit `REOPEN`; silent rewrites are not allowed.
 - **Before a material claim:** the result, run, planned test, checks, and interpretation boundary must support the wording.
 - **Before citing a source as evidence:** the relevant source content must have been retrieved and read.
@@ -117,7 +117,7 @@ These are decisions under the recorded design and rules, not universal truth lab
 
 ## Validation
 
-The validator checks mechanical properties such as map integrity, prospective plan structure, Git ancestry, run provenance, claim lineage, data exposure, citations, and notebooks.
+The validator checks mechanical properties such as map integrity, prospective plan structure, Git ancestry, append-only run receipts, execution-freeze→run diffs, result provenance, claim lineage, adaptive data exposure, citations, and notebooks.
 
 A validator `PASS` means only that coded invariants passed. It does **not** prove that the scientific design or interpretation is correct.
 
@@ -126,6 +126,14 @@ For debugging/power use:
 ```text
 python3 <installed research-map>/scripts/validate_all.py RESEARCH.map --offline
 ```
+
+A run may additionally record an optional replay recipe. Replaying checks computational regeneration separately from scientific validity:
+
+```text
+python3 <installed research-map>/scripts/replay.py RUN-4 --root .
+```
+
+Replay returns `EXACT | DRIFT | ERROR | NOT_VERIFIED`.
 
 ## Explorer
 
