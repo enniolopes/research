@@ -7,7 +7,7 @@
 - documents: <path/to/paper/>
 - notebooks: <path/to/notebooks/>
 - references: <path/to/references.bib>
-- floor: <minimum cell size for anything under documents, e.g. 5>
+<!-- Optional when a disclosure floor applies: `- floor: 5` -->
 
 ## Question
 <one line> → `<path/to/protocol.md#question>`   (that section carries the problem statement fields)
@@ -23,8 +23,8 @@ Registration: none
 | Phase | State | Blocked by | Evidence |
 |---|---|---|---|
 | 1A Problem — formulate | pending | | <when reached: pointer to the budget decision, e.g. `decisions.md#d-1`> |
-| 1B Problem — demonstrate | pending | | <when reached: pointer to the problem brief> |
-| 2 Literature | pending | | <when reached: pointer to the verification log or references> |
+| 1B Problem — establish | pending | | <when reached: pointer to the problem brief> |
+| 2 Literature | pending | | <when reached: pointer to references/search notes used for the literature gate> |
 | 3 Protocol | pending | | <when reached: pointer to the frozen protocol section> |
 | 4 Data | pending | | <when reached: pointer to the linkage report> |
 | 5 Analysis | pending | | <when reached: pointer to the results aggregate> |

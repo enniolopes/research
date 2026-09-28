@@ -3,7 +3,7 @@ name: statistical-analysis
 description: Turn a research estimand and design into an inspectable analysis strategy before fitting. Defines data-exploration boundaries, dependence, missingness, assumptions, checks, fallbacks, sensitivity and interpretation limits for observational quantitative research. Use internally from scientific-method when an analysis plan is created or revised; it proposes methods but never changes a frozen confirmatory commitment silently.
 license: CC-BY-NC-4.0
 metadata:
-  version: 0.8.0
+  version: 0.10.0
 argument-hint: '<plan | eda | review-plan> [path]'
 ---
 
@@ -29,7 +29,11 @@ Read only the references needed for the current decision:
 
 You may propose candidate methods, diagnostics and sensitivity analyses. You may not silently change the estimand, population, exposure, outcome, primary test, threshold or confirmatory fallback after exposure to a result. A choice that changes the scientific question returns to `scientific-method` as `REOPEN`; a defensible alternative that preserves the same estimand is a prospective specification dimension; a result-driven new idea is `EXPLORATORY`.
 
-Method knowledge is advisory until its primary source has been read for the condition being encoded. A plausible method remembered by the model is a candidate, not a rule.
+Method knowledge is advisory until the relevant source has been inspected for the condition being encoded. A plausible method remembered by the model is a candidate, not a rule. Record method-specific evidence in the analysis plan or decision that uses it; do not create a separate method-card subsystem.
+
+When observed data cause a new confirmatory model, threshold, feature set, population, fallback or decision rule to be invented or selected, record those data in `Generated from:`; they cannot later serve as independent confirmatory/validation evidence for that adaptive choice. Data that merely activate an already-frozen diagnostic/fallback rule are not generative exposure.
+
+For `Claim type: predictive`, use the existing plan fields rather than a parallel ML schema: outcome/target, population and time/horizon define the prediction target; the primary test and decision rule define evaluation; dependence covers resampling structure; leakage is an explicit assumption/check/failure action; and held-out evidence is a `validation` input.
 
 ## `plan`
 
@@ -52,7 +56,7 @@ Exploratory data analysis answers whether the observed data-generating structure
 
 Every material finding ends in exactly one routing consequence:
 
-`NO_CHANGE | SPECIFICATION | SENSITIVITY | DATA_PROBLEM | EXPLORATORY_ONLY | PROTOCOL_REOPEN | BLOCKED`.
+`NO_CHANGE | SPECIFICATION | SENSITIVITY | DATA_PROBLEM | EXPLORATORY | REOPEN | BLOCKED`.
 
 Discovery EDA may generate hypotheses, but the data that generated them are recorded as exposure. Confirmatory-support EDA after freeze is restricted to planned quality checks, assumptions, diagnostics and prospective fallbacks. It cannot redefine the target because the observed outcome made another target attractive.
 

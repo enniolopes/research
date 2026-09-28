@@ -4,7 +4,7 @@ Read when a claim interprets a measure, attributes a mechanism, compares explana
 
 ## Make the inferential bridge inspectable
 
-Before adopting an interpretation, distinguish the observation from what it is said to mean. At the existing `I<n>` or interpretation boundary, record only the links material to this claim:
+Before adopting an interpretation, distinguish the observation from what it is said to mean. In the claim's interpretation boundary or nearby manuscript reasoning, record only the links material to this claim:
 
 - construct and operational measure, with the evidence and conditions allowing that interpretation;
 - target population, context and predicted observable consequence;

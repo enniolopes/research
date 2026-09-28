@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Research 0.8 validator: preserve 0.7 checks and add epistemic plan/run/lineage/exposure checks."""
+"""Research 0.10 validator: operational checks plus executable run integrity and epistemic lineage."""
 
 from __future__ import annotations
 
@@ -8,17 +8,17 @@ import sys
 from pathlib import Path
 
 import epistemic
-import validate as legacy
+import validate as structural
 
-LEGACY = {"map", "numbers", "decisions", "disclosure", "citations", "notebooks"}
+STRUCTURAL = {"map", "numbers", "decisions", "disclosure", "citations", "notebooks"}
 EPISTEMIC = {"plan", "runs", "lineage", "exposure"}
-ALL = LEGACY | EPISTEMIC
+ALL = STRUCTURAL | EPISTEMIC
 
 
 def run(map_path: Path, root: Path, offline: bool, min_int: int, only: set[str] | None):
-    legacy_only = None if only is None else only & LEGACY
+    structural_only = None if only is None else only & STRUCTURAL
     epistemic_only = None if only is None else only & EPISTEMIC
-    results = legacy.run(map_path, root, offline, min_int, legacy_only)
+    results = structural.run(map_path, root, offline, min_int, structural_only)
     results.extend(epistemic.run(map_path, root, epistemic_only))
     return results
 

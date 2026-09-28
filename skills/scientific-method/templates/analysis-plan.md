@@ -7,6 +7,7 @@ Freeze: none
 Estimand: E1
 Primary test: T1
 Mode: confirmatory
+<!-- DATA<n> whose observed content generated/selected a non-precommitted confirmatory choice; triggering a frozen rule does not count. -->
 Generated from: none
 
 ### Design

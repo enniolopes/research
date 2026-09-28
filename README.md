@@ -1,6 +1,6 @@
 # research
 
-Research system for Claude Code. It keeps empirical research problem-first, prospective, traceable, and independently reviewed.
+Research system for Claude Code. It keeps empirical research problem-first, prospective, traceable, and adversarially reviewed in a separate context.
 
 Scope: observational quantitative research, especially administrative data.
 
@@ -15,14 +15,14 @@ Install the plugin from this repository:
 /plugin install research@enniolopes
 ```
 
-For the full phase-1 exploration workflow, also install the optional `explorer` skill from the skills marketplace:
+`research` already includes `explorer` because it is bundled under this plugin's `skills/` directory. No second marketplace is required.
+
+To install only the standalone explorer without the research system:
 
 ```text
-/plugin marketplace add enniolopes/skills
+/plugin marketplace add enniolopes/research
 /plugin install explorer@enniolopes
 ```
-
-Without `explorer`, the research system remains usable; the affected exploration is recorded as `NOT_VERIFIED` rather than invented.
 
 Start a new research project:
 
@@ -64,7 +64,7 @@ Research follows five rules:
 2. **Commit before exposure.** Confirmatory choices that a result could influence are recorded and frozen before that result is seen.
 3. **Evidence over narrative.** Executed code and inspected sources outrank memory, confidence, or explanation.
 4. **Discovery is not confirmation.** Data used to generate a hypothesis do not independently confirm it.
-5. **Claims need lineage and challenge.** Material claims trace back to evidence and face independent adversarial review before release.
+5. **Claims need lineage and challenge.** Material claims trace back to evidence and face separate-context adversarial review before release.
 
 The lifecycle remains:
 
@@ -82,22 +82,22 @@ The system handles the gates and preflights internally. If valid work can procee
 | `protocol.md` | Scientific question, hypotheses, estimands, and commitments |
 | `analysis-plan.md` | Primary tests, assumptions, checks, fallbacks, and interpretation limits |
 | `decisions.md` | Methodological decisions and revision conditions |
-| `.research/runs/` | What was executed, on which inputs, under which frozen commits |
+| `.research/runs/` | Append-only run receipts: what was executed, on which inputs, under which scientific/execution freezes |
 | `aggregates/` | Computed results |
-| `.research/reviews/` | Independent review evidence |
+| `.research/reviews/` | Separate-context adversarial review evidence |
 | manuscript | Scientific communication |
 
-The derived research graph is rebuildable and is not a second source of truth.
+Lineage queries are derived in memory from authoritative artifacts; no graph cache is a source of truth.
 
 Construct and mechanism claims explicitly connect measures to interpretations and examine discriminating evidence against plausible alternatives. When evidence changes, revision preserves unaffected findings and reassesses surviving support. Third-party reviews distinguish reported, reconstructed and reproduced findings without demanding native plugin artifacts. Graph queries identify candidate dependencies; they do not decide scientific validity.
 
 ## What happens at important boundaries
 
-- **Before a confirmatory fit:** the system checks the estimand, primary test, assumptions/checks/failure actions, dependence, freezes, registration, and data exposure.
+- **Before a confirmatory fit:** the system checks the estimand, primary test, assumptions/checks/failure actions, dependence, scientific freezes, registration/data exposure, then freezes the executable state before the result is exposed.
 - **After a frozen-plan change:** the idea must become `SPECIFICATION`, `EXPLORATORY`, `DEFERRED`, or an explicit `REOPEN`; silent rewrites are not allowed.
 - **Before a material claim:** the result, run, planned test, checks, and interpretation boundary must support the wording.
 - **Before citing a source as evidence:** the relevant source content must have been retrieved and read.
-- **Before publication:** material claims need current independent review and no unresolved material failure.
+- **Before publication:** material claims need current separate-context adversarial review and no unresolved material failure.
 
 ## Research states
 
@@ -117,7 +117,7 @@ These are decisions under the recorded design and rules, not universal truth lab
 
 ## Validation
 
-The validator checks mechanical properties such as map integrity, prospective plan structure, Git ancestry, run provenance, claim lineage, data exposure, citations, and notebooks.
+The validator checks mechanical properties such as map integrity, prospective plan structure, Git ancestry, append-only run receipts, execution-freeze→run diffs, result provenance, claim lineage, adaptive data exposure, citations, and notebooks.
 
 A validator `PASS` means only that coded invariants passed. It does **not** prove that the scientific design or interpretation is correct.
 
@@ -127,10 +127,23 @@ For debugging/power use:
 python3 <installed research-map>/scripts/validate_all.py RESEARCH.map --offline
 ```
 
-## Explorer
+A run may additionally record an optional replay recipe. Replaying checks computational regeneration separately from scientific validity:
 
-`explorer` is installed separately and is used for structural divergence and hypothesis generation. If it is unavailable, the affected exploration is `NOT_VERIFIED`; the rest of `research` remains usable.
+```text
+python3 <installed research-map>/scripts/replay.py RUN-4 --root .
+```
 
-## Development evidence
+Replay returns `EXACT | DRIFT | ERROR | NOT_VERIFIED`.
 
-Development evals and regression tests are maintained in the source skills monorepo; this repository contains the installable research runtime.
+## Runtime and development
+
+The runtime uses only the Python standard library and supports Python 3.10+. CI compiles the runtime and runs regression tests on Python 3.10 and 3.12.
+
+```text
+python -m unittest discover -s tests -v
+python -m py_compile skills/research-map/scripts/*.py skills/research-graph/scripts/*.py
+```
+
+The research plugin and its internal research skills share version `0.10.0`. The bundled `explorer` also remains installable standalone and keeps its own version line (`1.1.0`).
+
+The regression tests protecting this runtime live in this repository.

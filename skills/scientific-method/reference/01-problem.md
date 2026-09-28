@@ -1,60 +1,23 @@
-# Phase 1 — Problem: formulate (1A), then demonstrate (1B)
+# Phase 1 — Problem
 
-Sources located 2026-09-10, not yet read at source.
+Use when starting, materially reformulating, or reopening the research question. The aim is not to perfect wording; it is to establish a falsifiable question and verify that any empirical premise needed to justify the study is actually established.
 
-**When this applies.** A research is being started, restarted, or its question is being
-changed. Also whenever a hypothesis is added after the protocol exists (that addition is a
-phase-1 act and goes through both gates), whenever someone wants to start analysing with
-the question stated in one sentence, and when the method arrives at a research that already
-exists: then every gate starts `pending`, and 1A is earned by the same artifacts below or
-stays `pending` with what is missing named — a past is disclosed, never certified.
+## Gate 1A — formulate
 
-**What it requires.**
+1. Log an exploration budget: breadth, stopping condition and material constraints.
+2. Invoke `explorer` to generate a small set of structurally distinct candidate lineages. Its discriminating observation is a **candidate** test idea, not automatically the confirmatory `T<n>`; phase 3/statistical planning chooses the primary test from the estimand and design.
+3. Write the problem statement from `problem-statement.md`.
+4. Keep the active hypothesis portfolio intentionally small. Three is a useful default, not a mechanical maximum; a larger set requires an explicit scope/budget decision. Route non-adopted ideas to `Deferred`.
 
-Gate 1A — formulate:
+If the explorer capability cannot run, mark that exploration `NOT_VERIFIED`; do not simulate it by reading its instructions.
 
-- **Budget before exploring.** Log a decision with the exploration budget: how many
-  structurally different lineages (default three to five), how much time, and the stopping
-  rule (revised saturation: no new lineage after the search ontology was revised once). Wide
-  and fast is the goal; "as much as possible" is not a stopping rule. This block is the
-  gate's evidence: the map's `Gates` row for 1A points to it.
-- **Invoke** the `explorer` skill through the Skill tool (`explorer:explorer` when installed
-  from the marketplace) on the problem as stated, with that budget. Reading its file is
-  not invoking it. Each surviving lineage is a candidate hypothesis: its *discriminating
-  test* becomes the primary test, its *failure condition* the refutation clause. If it
-  cannot be invoked, the step is `NOT_VERIFIED` and 1A stays `pending`.
-- Write the **problem statement** (`reference/problem-statement.md`) at the anchor the
-  map's `## Question` points to; `validate` checks its seven required fields.
-- **Converge explicitly.** Adopt at most three hypotheses — `validate` fails on a fourth
-  without a terminal state; every lineage not adopted goes to the map's `## Deferred` with
-  its entry condition.
+## Gate 1B — establish
 
-Gate 1B — demonstrate:
+Write `problem-brief.md` and try to make the premise disappear before accepting it. Evidence may be:
 
-- Write the **problem brief** (`reference/problem-brief.md`): a descriptive study that shows
-  the problem exists, how big it is against a reference fixed beforehand, for whom and
-  where, how it is handled today, and what was tried to show it does not exist. Every
-  number from executed code; `validate` checks the file and its required fields.
-- **Falsify first.** Before asserting a magnitude, try to make it disappear: a validated
-  construct instead of the proxy, the right denominator, the trend, the threshold, a
-  different population definition. What survives is the problem.
-- **Verdict** in the map: `Problem: SHOWN | NOT_SHOWN | INCONCLUSIVE`. `NOT_SHOWN` ends or
-  reformulates the research; it is the cheapest good outcome a research can have. The
-  protocol (phase 3) does not freeze without `SHOWN`.
-- The brief has its own budget, logged with the exploration budget; a demonstration that
-  cannot decide within it is `INCONCLUSIVE` with the data that would decide it named.
+- **external** — a retrieved/read source adequate to the construct, population, time and magnitude; or
+- **local** — executed analysis with the magnitude present in a committed aggregate.
 
-**The error it prevents.** Solving the wrong problem precisely; a question that cannot fail;
-a predicted sign that contradicts a convention already logged; a unit of analysis that
-shifts between protocol and code; a term the protocol names and no code computes; a
-magnitude asserted from an anecdote; a construct quantified before it was validated.
+Use the smallest adequate basis. Do not recompute locally merely because the system can. If local data are used and their observed content later generates or selects a confirmatory choice, record that exposure normally.
 
-**Exit gate.** 1A: budget logged before exploring and `explorer` invoked on it; problem
-statement complete and passing `validate`; lineages not adopted in `## Deferred`; the map's
-1A row points to the budget decision. 1B: problem brief complete and passing `validate`;
-`Problem:` in the map is `SHOWN`, or the research is reformulated or closed; the map's 1B
-row points to the brief.
-
-**Sources.** King, Keohane & Verba, *Designing Social Inquiry*; Booth et al., *The Craft of
-Research*; and the sources of `reference/problem-statement.md` and
-`reference/problem-brief.md`.
+Verdict: `SHOWN | NOT_SHOWN | INCONCLUSIVE`. `NOT_SHOWN` closes or reformulates the study; `INCONCLUSIVE` names what evidence would decide. A confirmatory protocol does not freeze while a premise it depends on remains unestablished.
