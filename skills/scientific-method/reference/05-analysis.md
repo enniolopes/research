@@ -1,21 +1,11 @@
 # Phase 5 — Analysis
 
-Sources in this phase are methodological policy only after the relevant primary source has been read. Method-specific rules belong in source-read method cards; this phase owns the invariant structure.
+Run FIT immediately before any confirmatory result can be exposed. Invoke `statistical-analysis` to review the frozen plan; method selection starts from estimand/design, not a familiar model name.
 
-**When this applies.** You are about to fit a model, compute/report an inferential statistic, compare material results, or turn a run into a hypothesis state.
+Execution follows the canonical `../../research-map/reference/run-receipt.md` contract. Do not duplicate that schema here.
 
-**Entry preflight.** Run FIT before any confirmatory result can be exposed. A confirmatory run is blocked until `analysis-plan.md` contains, for the affected hypothesis: estimand, one primary test, dependence, decision rule, assumptions → checks → prospective failure actions, sensitivity/specification dimensions and interpretation boundary; protocol and plan freezes predate the run; registration/DRY_RUN state is valid; and exposure permits confirmatory use.
+After freeze, EDA is limited to planned quality/assumption/diagnostic questions and prospective fallbacks. Unexpected patterns route to `EXPLORATORY`, `SENSITIVITY`, `DATA_PROBLEM`, `REOPEN` or `BLOCKED`; they do not silently rewrite the primary analysis.
 
-Invoke `statistical-analysis` on the plan before freeze. Method selection starts from estimand/design, not outcome type or a familiar model name.
+The frozen primary test decides the confirmatory hypothesis under its recorded rule. Valid sensitivity/specification results qualify robustness and discordance is reported rather than used to select the favorable answer.
 
-**Execution.** Before exposing a confirmatory result, freeze the executable state in Git after the scientific freezes: implementation, configuration, declared inputs and repository-tracked environment recipe. The run commit that follows may change only declared outputs, and each declared output must be produced across that boundary. After that output commit exists, write and commit the run receipt that names it; the receipt is not part of the run commit it identifies. Every material run writes a run manifest with the run commit, freezes (including `execution_freeze` for new confirmatory runs), hypothesis/estimand/test IDs, typed data inputs and result artifacts. The first committed receipt is append-only; corrections create a new RUN/R identity. An optional replay recipe can later regenerate outputs from the execution freeze, but `EXACT`/`DRIFT` is computational evidence, not a scientific verdict. Every empirical statement that can be computed is computed; do not substitute qualitative model judgement for an executable diagnostic.
-
-**EDA boundary.** Discovery EDA may generate hypotheses and records the data that generated them. After freeze, EDA is restricted to planned data-quality/assumption/diagnostic questions and prospective fallbacks. An unexpected pattern routes to `EXPLORATORY`, `SENSITIVITY`, `DATA_PROBLEM`, `PROTOCOL_REOPEN` or `BLOCKED`; it never silently rewrites the primary analysis.
-
-**Discordance.** Report material disagreement between valid analyses. The pre-specified primary test decides the confirmatory hypothesis state. Sensitivity/specification results qualify robustness; they do not select the most favorable answer.
-
-**Interpretation.** Use `May claim` / `May not claim` from the analysis plan. A result becomes a material claim only after CLAIM preflight and lineage annotation. `CONFIRMED`, `REFUTED` and `INCONCLUSIVE` are states under the recorded decision rule, not universal truth labels.
-
-**The errors this prevents.** Fallbacks invented after residuals; estimator/estimand mismatch; independence assumed by convenience; a hypothesis or analytic choice generated and then independently 'validated' on the same exposed data; code/configuration silently changed while observing the result; specification search used to rescue a null; a result with no temporal provenance; and prose stronger than the design permits.
-
-**Exit gate.** The analysis plan is frozen; each confirmatory result has a valid run manifest; every pre-specified check has a recorded result/consequence; every hypothesis is in a terminal state; every reported number exists in a committed aggregate; and material claims have lineage ready for review.
+Exit when confirmatory runs have valid receipts, planned checks have consequences recorded, result artifacts are committed and each analyzed hypothesis has a terminal state.

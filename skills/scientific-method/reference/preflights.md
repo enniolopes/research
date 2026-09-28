@@ -1,79 +1,72 @@
 # Epistemic preflights
 
-Phases describe where the research is. Preflights govern the action about to happen. Run the smallest applicable preflight before the action, regardless of phase.
+Phases locate the research. Preflights govern the consequential action about to happen.
 
 ## FIT
 
-Before a confirmatory analysis can expose its result, require:
+Before exposing a confirmatory result, require:
 
-- hypothesis and estimand IDs;
-- one recorded primary test;
-- an `analysis-plan.md` block with assumptions, checks, failure actions, dependence and interpretation boundary;
-- protocol and analysis-plan freezes that predate the run;
-- registration/DRY_RUN state consistent with the protocol;
-- data exposure compatible with confirmatory use;
-- a run role: `primary | sensitivity | specification | diagnostic`;
-- an `execution_freeze` commit at or after the protocol/analysis-plan freezes and strictly before the run commit, containing the executable implementation, configuration, declared inputs and repository-tracked environment recipe.
+- H/E/T identities and one frozen primary test;
+- assumptions, checks, prospective failure actions, dependence, decision rule and interpretation boundary;
+- protocol and analysis-plan freezes;
+- registration/DRY_RUN state consistent with the project;
+- exposure compatible with independent confirmatory use;
+- a confirmatory `analysis_role: primary | sensitivity | specification | diagnostic`;
+- an `execution_freeze` satisfying the canonical run contract in `../../research-map/reference/run-receipt.md`.
 
-A `primary` confirmatory run executes the frozen primary test and may decide the hypothesis under the frozen decision rule. A confirmatory sensitivity/specification/diagnostic run must have its T<n> named in the frozen plan and may qualify/check the primary result, never replace it as the deciding test.
+Immediately before execution, tracked implementation/configuration/input state must match the execution freeze. Undeclared external, ignored or untracked runtime state is a limitation Git cannot retrospectively disprove.
 
-The run commit must contain the identified input paths and result artifact. Between `execution_freeze` and the run commit, only declared output artifacts may change, and each declared output must cross that boundary. The first committed version of a run receipt is append-only. Rewriting an old receipt or aggregate under the same RUN/R identity is historical drift, not an update; create a new run/result identity or restore the committed artifact.
-
-A missing material condition blocks the fit. Do not satisfy a failed preflight with an explanation of what the missing artifact probably would have contained.
+The frozen primary test alone may decide the hypothesis. Prospectively named sensitivity/specification/diagnostic runs may qualify it, never replace it as the deciding statistic.
 
 ## CHANGE_PLAN
 
-A post-freeze change is classified before editing the confirmatory plan:
+A post-freeze idea has one durable destination:
 
-- `SPECIFICATION` when it is a defensible alternative that preserves the same estimand **and was already admitted prospectively in the frozen plan**;
-- `EXPLORATORY` when it is result-driven or hypothesis-generating;
-- `DEFERRED` when it does not enter the current research;
-- `REOPEN` when it changes the confirmatory scientific commitment. `REOPEN` requires a logged decision and a new freeze.
+- `SPECIFICATION` — already admitted prospectively, same estimand;
+- `EXPLORATORY` — result-driven or hypothesis-generating;
+- `DEFERRED` — retained outside current work with an entry condition;
+- `REOPEN` — changes confirmatory commitment; append a decision and create new freezes.
 
-Classification is not complete when it exists only in the conversation. Before returning from the preflight, make the destination durable in the artifact that owns it:
-
-- `SPECIFICATION` — reference the already-frozen T<n>/dimension; if executed, its run manifest uses `analysis_role: specification`;
-- `EXPLORATORY` — if executed, record an exploratory run manifest; if retained but not executed, place it in `RESEARCH.map` `Deferred` as an exploratory candidate with its entry condition;
-- `DEFERRED` — write it to `RESEARCH.map` `Deferred` with the condition that would admit/revisit it;
-- `REOPEN` — append a methodological decision and create new protocol/analysis-plan freezes before subsequent confirmatory work.
-
-A genuinely new post-freeze alternative cannot be relabeled `SPECIFICATION` to keep confirmatory status. A previous run remains judged against the plan commit frozen for that run. A reopen governs subsequent work; it does not rewrite historical provenance.
-
-Silent rewrite and verbal-only routing are not states.
+Classification that exists only in conversation is not state. A later reopen governs later work; it never rewrites an earlier run.
 
 ## CLAIM
 
-Before a claim about this project's computed results enters prose, require an executed result, a valid run, the relevant planned test and checks, an interpretation boundary that permits the wording, and no unresolved supersession or material contradictory result. Give the claim a stable ID and a direct claim→result lineage annotation. A claim about externally reported findings follows CITE and the external-review route instead; never invent a local run for it.
+Before project results enter material prose, require an executed result, valid run, relevant planned test/checks, wording permitted by the interpretation boundary, and no unresolved material contradiction/supersession. Give the claim a stable `C<n>` and direct claim→result annotation.
 
-For a construct or mechanism interpretation, inspect the bridge in `inference-and-revision.md`: observed result, measure/construct link, plausible rival and discriminating evidence. If the design cannot distinguish explanations, limit the attribution while preserving the observed result. After a correction, reassess affected support and record its disposition before reusing the claim; graph reachability alone neither proves nor refutes it.
+A deciding claim must come from the confirmatory primary run. Other runs may qualify/support wording but do not decide the hypothesis.
 
-A hypothesis-deciding claim must come from a confirmatory `primary` run executing that run's frozen primary test. Sensitivity, specification, diagnostic and exploratory results may support/qualify claims but do not decide the confirmatory hypothesis.
+For construct/mechanism language, inspect the measure→interpretation bridge and a credible rival where relevant. If the design cannot distinguish explanations, narrow the claim rather than changing the empirical result.
 
 ## CITE
 
-A source may suggest a search while merely discovered. It supports a scientific or methodological proposition only after the relevant source content has been retrieved and read. DOI/URL resolution proves identity/reachability, not semantic support.
+A source supports a proposition only after the relevant content has been retrieved and read. DOI/URL resolution proves identity/reachability, not semantic support. A source seen only through an abstract/excerpt is represented with that limitation.
 
 ## PUBLISH
 
-Before release, require material claims to have complete lineage and an independent adversarial review; no unresolved `FAIL`; material `NOT_VERIFIED` explicitly disclosed or resolved; reporting/disclosure requirements satisfied; and human-owned publication/ethics decisions present.
+Before release require:
 
-Independent review is evidenced by a durable `.research/reviews/REVIEW-<n>.md` record containing the reviewed repository commit, manuscript path and the returned reviewer verdict/findings. The record is written from an actual separate reviewer invocation (`research:reviewer-2` when available), not from the orchestrator reviewing its own work inline. If the independent reviewer capability cannot run, the review requirement is `NOT_VERIFIED`; do not simulate independence. A review record that predates material manuscript/result changes is stale and does not satisfy PUBLISH until the affected review is rerun.
+- complete material claim lineage;
+- current separate-context adversarial review;
+- no unresolved material `FAIL`;
+- material `NOT_VERIFIED` disclosed or resolved;
+- applicable reporting, disclosure, legal/ethical and venue/funder requirements checked against current authoritative text;
+- human-owned publication/ethics decisions recorded where needed.
+
+A review record under `.research/reviews/` names the reviewed commit and manuscript. Material changes make it stale. Separate model context provides procedural separation only; it is not evidence of independent expertise or independent error sources.
 
 ## Forbidden transitions
-
-The following transitions are invalid:
 
 ```text
 RESULT_SEEN -> RETROACTIVE_FALLBACK
 RESULT_SEEN -> RETROACTIVE_EXECUTION_FREEZE
-DISCOVERY_DATA -> INDEPENDENT_CONFIRMATION_OF_DERIVED_HYPOTHESIS
+ADAPTIVE_DATA -> INDEPENDENT_CONFIRMATION_OR_VALIDATION
 SOURCE_DISCOVERED -> SUPPORTS_CLAIM
 UNEXECUTED_NUMBER -> RESULT
 SECONDARY_TEST -> DECIDES_HYPOTHESIS_AGAINST_PRIMARY
 FROZEN_PROTOCOL -> SILENT_REWRITE
 VERBAL_CHANGE_CLASSIFICATION -> COMPLETED_CHANGE_PLAN
-INLINE_SELF_REVIEW -> INDEPENDENT_REVIEW
+INLINE_SELF_REVIEW -> SEPARATE_CONTEXT_REVIEW
 VALIDATOR_PASS -> SCIENTIFICALLY_TRUE
 ```
 
-Route invalid transitions to a legitimate state: prospective fallback, `EXPLORATORY`, `DEFERRED`, `REOPEN`, `BLOCKED` or `NOT_VERIFIED`.
+Route an invalid transition to prospective fallback, `EXPLORATORY`, `DEFERRED`, `REOPEN`, `BLOCKED` or `NOT_VERIFIED`.

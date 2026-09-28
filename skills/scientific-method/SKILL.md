@@ -1,6 +1,6 @@
 ---
 name: scientific-method
-description: Orchestrate observational quantitative research as an epistemic control system: formulate and try to falsify the problem first, explore before commitment, freeze consequential choices before result exposure, execute against identified evidence, require claim lineage, and challenge material claims independently. This is the single public entry point; it delegates exploration, statistical planning, memory, graph lineage and review internally.
+description: Orchestrate observational quantitative research as an epistemic control system: formulate and test the problem first, explore before commitment, freeze consequential choices before result exposure, execute against identified evidence, require claim lineage, and challenge material claims in a separate review context. This is the single public entry point; it delegates exploration, statistical planning, memory, graph lineage and review internally.
 when_to_use: Use to start or continue a research, check status, review a manuscript, and before fitting a model, changing a frozen plan, citing a source, reporting a material result, writing a claim or publishing. Also use when a new hypothesis or method appears after data exposure or protocol freeze.
 license: CC-BY-NC-4.0
 metadata:
@@ -20,7 +20,7 @@ This is the public entry point. The user talks to this skill; internal skills an
 2. **Commitment precedes exposure.** A choice that can be influenced by a result must be recorded and frozen before exposure to that result.
 3. **Discovery is not confirmation.** Evidence that materially generated or selected a hypothesis does not independently confirm it.
 4. **Claims require lineage.** Every material scientific claim must be traceable to identified result/source evidence and the design/checks that permit its wording.
-5. **Material claims face an adversary.** The process that built a material claim is insufficient to release it; independent adversarial review is required.
+5. **Material claims face an adversary.** The process that built a material claim is insufficient to release it; a separate-context adversarial review is required.
 
 These laws generate the detailed rules. Do not add a second prose rule when an important failure can instead be represented as an artifact, state, relation, temporal fact or invalid transition.
 
@@ -36,7 +36,7 @@ EXPLORE → COMMIT → EXECUTE → JUSTIFY → CHALLENGE
 - **COMMIT** — make the scientific target and consequential decision rules explicit: estimand, protocol, primary test, assumptions/checks/failure actions, interpretation boundary; then freeze.
 - **EXECUTE** — run identified code against identified inputs; produce run manifests, diagnostics, aggregates and results. Confirmatory execution follows the frozen plan rather than inventing a better story after exposure.
 - **JUSTIFY** — decide what the result permits the project to claim, given estimand, design, checks, sensitivity and interpretation boundary.
-- **CHALLENGE** — seek falsifying evidence first; run mechanical validation and independent review before release.
+- **CHALLENGE** — seek falsifying evidence first; run mechanical validation and a separate-context adversarial review before release.
 
 The eight research phases below remain the lifecycle/navigation layer. Preflights, not phase vocabulary, control the action immediately before an epistemically consequential step.
 
@@ -82,32 +82,13 @@ Gate 1B writes the problem brief from `reference/problem-brief.md`. It establish
 
 Read `reference/01-problem.md` when entering/reopening phase 1.
 
-## Analysis plan and freeze
+## Analysis plan and execution
 
-Before confirmatory Phase 5 execution, create `analysis-plan.md` using `templates/analysis-plan.md` and invoke `statistical-analysis` to review it.
+Before confirmatory Phase 5 execution, create `analysis-plan.md` from the template and invoke `statistical-analysis`. Each confirmatory hypothesis records stable H/E/T ids, exposure, dependence, decision rules, assumptions → checks → prospective failure actions, material sensitivity/specification dimensions and `May claim / May not claim` boundaries.
 
-For each confirmatory hypothesis the plan carries stable IDs for hypothesis, estimand and primary test; `Generated from:` exposure; dependence; decision rules; assumptions `A<n>`; checks `K<n>`; prospective failure actions; sensitivity/specification dimensions; and `May claim` / `May not claim` interpretation boundaries.
+The canonical execution contract is `../research-map/reference/run-receipt.md`. In brief: scientific commitments freeze first; a clean executable state becomes `execution_freeze`; execution produces only declared outputs; the output commit is recorded by an append-only RUN receipt. Optional replay tests computational regeneration separately from scientific validity.
 
-`protocol_freeze` and `analysis_plan_freeze` are Git commits, not prose labels. Before a confirmatory result is exposed, record an `execution_freeze`: a Git commit at or after those scientific freezes containing the executable implementation, configuration, declared inputs and any repository-tracked environment recipe used for the run. The later run commit may differ from that execution freeze only by the run's declared output artifacts.
-
-Every material run writes `.research/runs/RUN-<n>.json` with the scientific freezes, `execution_freeze` for new confirmatory runs, the run commit, hypothesis/estimand/test, typed data inputs and result artifacts. A run receipt becomes append-only at the first commit that adds it; corrections create a new RUN identity rather than rewriting execution history.
-
-For a new confirmatory run the operational order is fixed: freeze the scientific plan; commit the ready executable state as `execution_freeze`; execute without editing tracked implementation/configuration/inputs; commit only the declared outputs as the run `commit`; then write and commit the receipt that references both hashes. The receipt is therefore evidence about the run commit, not part of the run commit itself.
-
-An optional replay object may record a command and repository-tracked environment paths so the result can be regenerated from `execution_freeze`. Prefer an argv list; a string is tokenized without shell expansion:
-
-```json
-"replay": {
-  "command": ["uv", "run", "--frozen", "python", "analysis/h1.py"],
-  "environment": ["pyproject.toml", "uv.lock"]
-}
-```
-
-Replay status is separate from scientific validity.
-
-Temporal ancestry establishes repository order, not absence of prior human/model exposure elsewhere. Record known exposure and localize unverifiable history; never erase it by freezing later.
-
-A historical analysis without trustworthy temporal provenance remains historical/`NOT_VERIFIED`; never reconstruct a freeze retrospectively as if it were observed.
+Git proves repository ordering and recorded diffs, not absence of prior human/model exposure or undeclared external runtime state. Disclose those limits; never manufacture retrospective provenance. Historical work without trustworthy temporal provenance remains historical/`NOT_VERIFIED`.
 
 ## Exposure and exploration
 
@@ -179,8 +160,8 @@ A later finding can reopen an earlier phase. Skipping a required phase is a logg
 - `explorer` — separately installed phase 1 structural divergence/hypothesis-lineage delegate. Its absence makes the affected exploration `NOT_VERIFIED`; it does not disable the rest of `research`.
 - `statistical-analysis` — estimand-first analysis plan, EDA boundary, dependence and missingness decisions.
 - `research-map` — operational memory and composed mechanical validation.
-- `research-graph` — derived lineage/index and trace/argument queries.
-- `reviewer-2` — independent, non-editing adversarial review.
+- `research-graph` — in-memory lineage trace/why/changed queries.
+- `reviewer-2` — separate-context, non-editing adversarial review.
 
 Invoke delegates; do not simulate them by reading their instructions. If a needed delegate cannot run, the affected check is `NOT_VERIFIED`.
 
@@ -201,4 +182,4 @@ After commit, change it only by a later block with `Supersedes: D-<k>`.
 
 Keep system mechanics mostly invisible. Lead with the question, permitted conclusion, decisive evidence, main limitation and next useful action; link to authoritative detail instead of copying a second report into the map. Do not require the user to memorize internal commands. When a preflight blocks an action, state what evidence/decision is missing and the legitimate route forward.
 
-A research is complete when every hypothesis has a terminal state, material claims passed independent adversarial review, publication requirements passed, and the map records the final state.
+A research is complete when every hypothesis has a terminal state, material claims passed current separate-context adversarial review, publication requirements passed, and the map records the final state.

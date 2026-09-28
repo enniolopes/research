@@ -1,6 +1,6 @@
 # research
 
-Research system for Claude Code. It keeps empirical research problem-first, prospective, traceable, and independently reviewed.
+Research system for Claude Code. It keeps empirical research problem-first, prospective, traceable, and adversarially reviewed in a separate context.
 
 Scope: observational quantitative research, especially administrative data.
 
@@ -64,7 +64,7 @@ Research follows five rules:
 2. **Commit before exposure.** Confirmatory choices that a result could influence are recorded and frozen before that result is seen.
 3. **Evidence over narrative.** Executed code and inspected sources outrank memory, confidence, or explanation.
 4. **Discovery is not confirmation.** Data used to generate a hypothesis do not independently confirm it.
-5. **Claims need lineage and challenge.** Material claims trace back to evidence and face independent adversarial review before release.
+5. **Claims need lineage and challenge.** Material claims trace back to evidence and face separate-context adversarial review before release.
 
 The lifecycle remains:
 
@@ -84,7 +84,7 @@ The system handles the gates and preflights internally. If valid work can procee
 | `decisions.md` | Methodological decisions and revision conditions |
 | `.research/runs/` | Append-only run receipts: what was executed, on which inputs, under which scientific/execution freezes |
 | `aggregates/` | Computed results |
-| `.research/reviews/` | Independent review evidence |
+| `.research/reviews/` | Separate-context adversarial review evidence |
 | manuscript | Scientific communication |
 
 Lineage queries are derived in memory from authoritative artifacts; no graph cache is a source of truth.
@@ -97,7 +97,7 @@ Construct and mechanism claims explicitly connect measures to interpretations an
 - **After a frozen-plan change:** the idea must become `SPECIFICATION`, `EXPLORATORY`, `DEFERRED`, or an explicit `REOPEN`; silent rewrites are not allowed.
 - **Before a material claim:** the result, run, planned test, checks, and interpretation boundary must support the wording.
 - **Before citing a source as evidence:** the relevant source content must have been retrieved and read.
-- **Before publication:** material claims need current independent review and no unresolved material failure.
+- **Before publication:** material claims need current separate-context adversarial review and no unresolved material failure.
 
 ## Research states
 
