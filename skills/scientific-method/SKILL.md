@@ -4,7 +4,7 @@ description: Orchestrate observational quantitative research as an epistemic con
 when_to_use: Use to start or continue a research, check status, review a manuscript, and before fitting a model, changing a frozen plan, citing a source, reporting a material result, writing a claim or publishing. Also use when a new hypothesis or method appears after data exposure or protocol freeze.
 license: CC-BY-NC-4.0
 metadata:
-  version: 0.10.0
+  version: 0.11.0
 argument-hint: '<start <question> | status | review [manuscript] | replay RUN-<n> | what you want to do>'
 ---
 
@@ -88,7 +88,7 @@ Read `reference/01-problem.md` when entering/reopening phase 1.
 
 Before confirmatory Phase 5 execution, create `analysis-plan.md` from the template and invoke `statistical-analysis`. Each confirmatory hypothesis records stable H/E/T ids, exposure, dependence, decision rules, assumptions → checks → prospective failure actions, material sensitivity/specification dimensions and `May claim / May not claim` boundaries.
 
-The canonical execution contract is `../research-map/reference/run-receipt.md`. In brief: scientific commitments freeze first; a clean executable state becomes `execution_freeze`; execution produces only declared outputs; the output commit is recorded by an append-only RUN receipt. Optional replay tests computational regeneration separately from scientific validity.
+The canonical execution contract is `../research-map/reference/run-receipt.md`. In brief: scientific commitments freeze first; a clean executable state becomes `execution_freeze`; execution produces only declared outputs; the output commit is recorded by an append-only RUN receipt. A project may additionally commit an optional `ExecutionSpec` before execution and invoke the local runner described in `../research-map/reference/execution-spec.md`; this strengthens the prospective executable boundary without becoming a new source of scientific truth. Optional replay tests computational regeneration separately from scientific validity.
 
 Git proves repository ordering and recorded diffs, not absence of prior human/model exposure or undeclared external runtime state. Disclose those limits; never manufacture retrospective provenance. Historical work without trustworthy temporal provenance remains historical/`NOT_VERIFIED`.
 
