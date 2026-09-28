@@ -3,7 +3,7 @@ name: research-graph
 description: Derive and query claim/result/run/test/data lineage from authoritative research artifacts. Internal navigation utility; it writes no source-of-truth or cache.
 license: CC-BY-NC-4.0
 metadata:
-  version: 0.10.0
+  version: 0.11.0
 argument-hint: '<build | trace NODE | why NODE | changed NODE> [RESEARCH.map]'
 ---
 

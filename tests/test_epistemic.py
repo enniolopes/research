@@ -38,6 +38,7 @@ class EpistemicTests(unittest.TestCase):
         git(self.root, "config", "user.name", "Test")
         (self.root / "aggregates").mkdir()
         (self.root / ".research" / "runs").mkdir(parents=True)
+        (self.root / ".research" / "executions").mkdir(parents=True)
         (self.root / "data.csv").write_text("x\n1\n", encoding="utf-8")
         (self.root / "protocol.md").write_text("## H1\nregistered hypothesis\n", encoding="utf-8")
         (self.root / "analysis-plan.md").write_text(
@@ -58,6 +59,28 @@ class EpistemicTests(unittest.TestCase):
             (self.root / name).mkdir()
         (self.root / "decisions.md").write_text("", encoding="utf-8")
         (self.root / "references.bib").write_text("", encoding="utf-8")
+        for execution_id, output in [
+            ("EXEC-1", "aggregates/r1.txt"),
+            ("EXEC-2", "aggregates/other.txt"),
+        ]:
+            (self.root / ".research" / "executions" / f"{execution_id}.json").write_text(
+                json.dumps(
+                    {
+                        "id": execution_id,
+                        "command": [sys.executable, "analysis.py"],
+                        "inputs": ["data.csv"],
+                        "outputs": [output],
+                        "environment": [],
+                        "capabilities": {
+                            "network_egress": False,
+                            "model_egress": False,
+                        },
+                    },
+                    indent=2,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
         git(self.root, "add", ".")
         git(self.root, "commit", "-m", "execution freeze")
         self.freeze = git(self.root, "rev-parse", "HEAD")
@@ -65,7 +88,9 @@ class EpistemicTests(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
-    def make_confirmatory_receipt(self, extra_change: bool = False) -> Path:
+    def make_confirmatory_receipt(
+        self, extra_change: bool = False, execution_spec: str | None = None
+    ) -> Path:
         (self.root / "aggregates" / "r1.txt").write_text("42\n", encoding="utf-8")
         if extra_change:
             (self.root / "protocol.md").write_text("## H1\nchanged after freeze\n", encoding="utf-8")
@@ -87,11 +112,48 @@ class EpistemicTests(unittest.TestCase):
             "inputs": [{"id": "DATA1", "path": "data.csv", "role": "confirmatory"}],
             "outputs": [{"result": "R1", "artifact": "aggregates/r1.txt"}],
         }
+        if execution_spec:
+            receipt["execution_spec"] = execution_spec
         path = self.root / ".research" / "runs" / "RUN-1.json"
         path.write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
         git(self.root, "add", str(path.relative_to(self.root)))
         git(self.root, "commit", "-m", "record receipt")
         return path
+
+    def test_run_can_bind_to_frozen_execution_spec(self):
+        self.make_confirmatory_receipt(execution_spec="EXEC-1")
+        result, _, _ = epistemic.check_runs(self.root, self.root / "RESEARCH.map")
+        self.assertEqual(result.status, "PASS", result.lines)
+
+    def test_run_rejects_execution_spec_output_mismatch(self):
+        self.make_confirmatory_receipt(execution_spec="EXEC-2")
+        result, _, _ = epistemic.check_runs(self.root, self.root / "RESEARCH.map")
+        self.assertEqual(result.status, "FAIL")
+        self.assertTrue(any("do not match frozen EXEC-2 outputs" in line for line in result.lines), result.lines)
+
+    def test_exploratory_run_can_opt_into_execution_spec_boundary(self):
+        (self.root / "aggregates" / "r1.txt").write_text("42\n", encoding="utf-8")
+        git(self.root, "add", "aggregates/r1.txt")
+        git(self.root, "commit", "-m", "exploratory output")
+        run_commit = git(self.root, "rev-parse", "HEAD")
+        receipt = {
+            "id": "RUN-5",
+            "mode": "exploratory",
+            "hypothesis": "H1",
+            "estimand": "E1",
+            "test": "T1",
+            "commit": run_commit,
+            "execution_freeze": self.freeze,
+            "execution_spec": "EXEC-1",
+            "inputs": [{"id": "DATA1", "path": "data.csv", "role": "discovery"}],
+            "outputs": [{"result": "R1", "artifact": "aggregates/r1.txt"}],
+        }
+        path = self.root / ".research" / "runs" / "RUN-5.json"
+        path.write_text(json.dumps(receipt) + "\n", encoding="utf-8")
+        git(self.root, "add", str(path.relative_to(self.root)))
+        git(self.root, "commit", "-m", "record exploratory receipt")
+        result, _, _ = epistemic.check_runs(self.root, self.root / "RESEARCH.map")
+        self.assertEqual(result.status, "PASS", result.lines)
 
     def test_output_only_execution_boundary_passes(self):
         self.make_confirmatory_receipt()

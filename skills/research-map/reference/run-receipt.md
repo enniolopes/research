@@ -48,7 +48,15 @@ Operational order:
 
 The validator requires scientific freezes ≤ execution freeze < run commit, inputs present at execution freeze, no confirmatory input/output path overlap, and only declared outputs changed across the execution boundary. Each declared output must cross that boundary. Artifact drift checks are byte-exact, including binary outputs.
 
-The first committed version of a RUN receipt is authoritative. Corrections get new RUN/R identities.
+A run may optionally bind to a prospective execution spec:
+
+```json
+"execution_spec": "EXEC-1"
+```
+
+When present, `execution_spec` names `.research/executions/EXEC-<n>.json` as it existed at `execution_freeze`. The validator requires the frozen spec's declared inputs and outputs to match the RUN receipt and applies the execution-freeze → run-commit output-only boundary to that run. This also permits exploratory runs to opt into the same executable integrity contract without changing their scientific authority.
+
+The first committed version of a RUN receipt is authoritative. Corrections get new RUN/R identities. Execution specs are prospective and independently append-only; change one by creating a new EXEC id.
 
 ## Replay
 
