@@ -8,7 +8,7 @@ Sources in this phase are methodological policy only after the relevant primary 
 
 Invoke `statistical-analysis` on the plan before freeze. Method selection starts from estimand/design, not outcome type or a familiar model name.
 
-**Execution.** Every material run writes a run manifest with the run commit, freezes, hypothesis/estimand/test IDs, typed data inputs and result artifacts. Every empirical statement that can be computed is computed; do not substitute qualitative model judgement for an executable diagnostic.
+**Execution.** Before exposing a confirmatory result, freeze the executable state in Git after the scientific freezes: implementation, configuration, declared inputs and repository-tracked environment recipe. The run commit that follows may change only declared outputs, and each declared output must be produced across that boundary. Every material run writes a run manifest with the run commit, freezes (including `execution_freeze` for new confirmatory runs), hypothesis/estimand/test IDs, typed data inputs and result artifacts. The first committed receipt is append-only; corrections create a new RUN/R identity. An optional replay recipe can later regenerate outputs from the execution freeze, but `EXACT`/`DRIFT` is computational evidence, not a scientific verdict. Every empirical statement that can be computed is computed; do not substitute qualitative model judgement for an executable diagnostic.
 
 **EDA boundary.** Discovery EDA may generate hypotheses and records the data that generated them. After freeze, EDA is restricted to planned data-quality/assumption/diagnostic questions and prospective fallbacks. An unexpected pattern routes to `EXPLORATORY`, `SENSITIVITY`, `DATA_PROBLEM`, `PROTOCOL_REOPEN` or `BLOCKED`; it never silently rewrites the primary analysis.
 
@@ -16,6 +16,6 @@ Invoke `statistical-analysis` on the plan before freeze. Method selection starts
 
 **Interpretation.** Use `May claim` / `May not claim` from the analysis plan. A result becomes a material claim only after CLAIM preflight and lineage annotation. `CONFIRMED`, `REFUTED` and `INCONCLUSIVE` are states under the recorded decision rule, not universal truth labels.
 
-**The errors this prevents.** Fallbacks invented after residuals; estimator/estimand mismatch; independence assumed by convenience; a hypothesis discovered and confirmed on the same exposed data; specification search used to rescue a null; a result with no temporal provenance; and prose stronger than the design permits.
+**The errors this prevents.** Fallbacks invented after residuals; estimator/estimand mismatch; independence assumed by convenience; a hypothesis or analytic choice generated and then independently 'validated' on the same exposed data; code/configuration silently changed while observing the result; specification search used to rescue a null; a result with no temporal provenance; and prose stronger than the design permits.
 
 **Exit gate.** The analysis plan is frozen; each confirmatory result has a valid run manifest; every pre-specified check has a recorded result/consequence; every hypothesis is in a terminal state; every reported number exists in a committed aggregate; and material claims have lineage ready for review.

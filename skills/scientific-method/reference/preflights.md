@@ -12,11 +12,12 @@ Before a confirmatory analysis can expose its result, require:
 - protocol and analysis-plan freezes that predate the run;
 - registration/DRY_RUN state consistent with the protocol;
 - data exposure compatible with confirmatory use;
-- a run role: `primary | sensitivity | specification | diagnostic`.
+- a run role: `primary | sensitivity | specification | diagnostic`;
+- an `execution_freeze` commit at or after the protocol/analysis-plan freezes and strictly before the run commit, containing the executable implementation, configuration, declared inputs and repository-tracked environment recipe.
 
 A `primary` confirmatory run executes the frozen primary test and may decide the hypothesis under the frozen decision rule. A confirmatory sensitivity/specification/diagnostic run must have its T<n> named in the frozen plan and may qualify/check the primary result, never replace it as the deciding test.
 
-The execution commit recorded by the run must contain the identified input paths and result artifact. Rewriting an old aggregate under the same R<n> after that commit is artifact drift, not an update; create a new run/result identity or restore the committed artifact.
+The run commit must contain the identified input paths and result artifact. Between `execution_freeze` and the run commit, only declared output artifacts may change, and each declared output must cross that boundary. The first committed version of a run receipt is append-only. Rewriting an old receipt or aggregate under the same RUN/R identity is historical drift, not an update; create a new run/result identity or restore the committed artifact.
 
 A missing material condition blocks the fit. Do not satisfy a failed preflight with an explanation of what the missing artifact probably would have contained.
 
@@ -64,6 +65,7 @@ The following transitions are invalid:
 
 ```text
 RESULT_SEEN -> RETROACTIVE_FALLBACK
+RESULT_SEEN -> RETROACTIVE_EXECUTION_FREEZE
 DISCOVERY_DATA -> INDEPENDENT_CONFIRMATION_OF_DERIVED_HYPOTHESIS
 SOURCE_DISCOVERED -> SUPPORTS_CLAIM
 UNEXECUTED_NUMBER -> RESULT

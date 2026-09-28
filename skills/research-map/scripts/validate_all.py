@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Research 0.8 validator: preserve 0.7 checks and add epistemic plan/run/lineage/exposure checks."""
+"""Research 0.10 validator: operational checks plus executable run integrity and epistemic lineage."""
 
 from __future__ import annotations
 
