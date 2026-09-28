@@ -1,13 +1,26 @@
 #!/usr/bin/env python3
-"""Mechanical epistemic checks for research 0.10. Standard library only."""
+"""Mechanical epistemic checks for Research. Standard library only."""
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import re
 import subprocess
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
+
+try:
+    import execute as execution
+except ModuleNotFoundError:
+    _execution_spec = importlib.util.spec_from_file_location(
+        "execute", Path(__file__).with_name("execute.py")
+    )
+    assert _execution_spec and _execution_spec.loader
+    execution = importlib.util.module_from_spec(_execution_spec)
+    sys.modules["execute"] = execution
+    _execution_spec.loader.exec_module(execution)
 
 EMPTY = {"", "-", "—", "none", "n/a", "na", "tbd", "?"}
 H_HEADING = re.compile(r"^##\s+(H\d+)\s*$", re.M)
@@ -311,12 +324,15 @@ def check_runs(root: Path, map_path: Path) -> tuple[Result, dict[str, dict], dic
         protocol_freeze = str(data.get("protocol_freeze", ""))
         plan_freeze = str(data.get("analysis_plan_freeze", ""))
         execution_freeze = str(data.get("execution_freeze", ""))
+        execution_spec_id = str(data.get("execution_spec", "")).upper().strip()
         registration = str(data.get("registration", "")).strip()
         frozen_primary = ""
         frozen_generated: list[str] = []
         frozen_tests: set[str] = set()
         temporal_ready = False
         execution_ready = False
+        frozen_execution_inputs: set[str] | None = None
+        frozen_execution_outputs: set[str] | None = None
 
         if not COMMIT.fullmatch(commit):
             result.fail(f"{rel}: commit must be a git commit id")
@@ -435,6 +451,59 @@ def check_runs(root: Path, map_path: Path) -> tuple[Result, dict[str, dict], dic
                 temporal_unverified += 1
                 result.lines.append(f"{rel}: git unavailable/not a work tree; run commit provenance NOT_VERIFIED")
 
+        if execution_spec_id:
+            if not execution.EXECUTION_ID.fullmatch(execution_spec_id):
+                result.fail(f"{rel}: execution_spec must be EXEC-<n>")
+            if not COMMIT.fullmatch(execution_freeze):
+                result.fail(f"{rel}: execution_spec requires a valid execution_freeze commit")
+            elif have_git and COMMIT.fullmatch(commit) and commit_exists(root, commit):
+                if not commit_exists(root, execution_freeze):
+                    result.fail(f"{rel}: execution freeze {execution_freeze} does not exist")
+                elif mode != "confirmatory":
+                    ordering_ok = True
+                    if execution_freeze == commit:
+                        ordering_ok = False
+                        result.fail(f"{rel}: execution freeze must strictly predate run commit {commit}")
+                    elif not is_ancestor(root, execution_freeze, commit):
+                        ordering_ok = False
+                        result.fail(
+                            f"{rel}: execution freeze {execution_freeze} does not predate run commit {commit}"
+                        )
+                    execution_ready = ordering_ok
+                if commit_exists(root, execution_freeze):
+                    spec_path = f".research/executions/{execution_spec_id}.json"
+                    frozen_spec_text = show(root, execution_freeze, spec_path)
+                    if frozen_spec_text is None:
+                        result.fail(
+                            f"{rel}: execution spec {execution_spec_id} does not exist at execution freeze {execution_freeze}"
+                        )
+                    else:
+                        try:
+                            frozen_spec_data = json.loads(frozen_spec_text)
+                        except json.JSONDecodeError:
+                            result.fail(
+                                f"{rel}: execution spec {execution_spec_id} is invalid JSON at execution freeze"
+                            )
+                        else:
+                            spec_result, frozen_spec = execution.validate_spec(
+                                frozen_spec_data, filename=spec_path
+                            )
+                            if spec_result.status == "FAIL" or frozen_spec is None:
+                                for line in spec_result.lines:
+                                    result.fail(f"{rel}: frozen {line}")
+                            elif frozen_spec["id"] != execution_spec_id:
+                                result.fail(
+                                    f"{rel}: frozen execution spec id {frozen_spec['id']} does not match {execution_spec_id}"
+                                )
+                            else:
+                                frozen_execution_inputs = set(frozen_spec["inputs"])
+                                frozen_execution_outputs = set(frozen_spec["outputs"])
+            elif not have_git:
+                temporal_unverified += 1
+                result.lines.append(
+                    f"{rel}: git unavailable/not a work tree; execution-spec binding NOT_VERIFIED"
+                )
+
         run_record = dict(data)
         run_record["_frozen_primary_test"] = frozen_primary
         run_record["_frozen_generated_from"] = frozen_generated
@@ -473,6 +542,12 @@ def check_runs(root: Path, map_path: Path) -> tuple[Result, dict[str, dict], dic
                     data_fingerprints.setdefault(data_id, set()).add(fingerprint)
             if execution_ready and data_path and not path_exists_at(root, execution_freeze, data_path):
                 result.fail(f"{rel}: input {data_id or '?'} `{data_path}` did not exist at execution freeze {execution_freeze}")
+
+        if frozen_execution_inputs is not None and input_paths != frozen_execution_inputs:
+            result.fail(
+                f"{rel}: RUN inputs {sorted(input_paths)} do not match frozen "
+                f"{execution_spec_id} inputs {sorted(frozen_execution_inputs)}"
+            )
 
         replay = data.get("replay")
         if replay is not None:
@@ -537,6 +612,12 @@ def check_runs(root: Path, map_path: Path) -> tuple[Result, dict[str, dict], dic
                 "frozen_primary_test": frozen_primary,
                 "analysis_plan_freeze": plan_freeze,
             }
+
+        if frozen_execution_outputs is not None and output_artifacts != frozen_execution_outputs:
+            result.fail(
+                f"{rel}: RUN outputs {sorted(output_artifacts)} do not match frozen "
+                f"{execution_spec_id} outputs {sorted(frozen_execution_outputs)}"
+            )
 
         if mode == "confirmatory":
             overlap_paths = input_paths & output_artifacts
