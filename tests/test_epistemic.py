@@ -131,6 +131,23 @@ class EpistemicTests(unittest.TestCase):
         self.assertEqual(result.status, "FAIL")
 
 
+
+    def test_relabeling_same_committed_data_does_not_restore_independence(self):
+        plan = {"H1": {"generated_from": ["DATA1"]}}
+        runs = {
+            "RUN-1": {
+                "mode": "confirmatory",
+                "hypothesis": "H1",
+                "_frozen_generated_from": ["DATA1"],
+                "_frozen_primary_test": "T1",
+                "_data_fingerprints": {"DATA1": "blob-x", "DATA2": "blob-x"},
+                "inputs": [{"id": "DATA2", "role": "validation"}],
+            }
+        }
+        result = epistemic.check_exposure(plan, runs)
+        self.assertEqual(result.status, "FAIL")
+        self.assertTrue(any("re-labels the same committed input content" in line for line in result.lines), result.lines)
+
     def test_frozen_generated_none_does_not_inherit_current_exposure(self):
         plan = {"H1": {"generated_from": ["DATA2"]}}
         runs = {
@@ -257,6 +274,7 @@ class EpistemicTests(unittest.TestCase):
         side_commit = git(self.root, "rev-parse", "HEAD")
 
         git(self.root, "switch", base_branch)
+        artifact.parent.mkdir(exist_ok=True)
         artifact.write_text("same\n", encoding="utf-8")
         receipt = {
             "id": "RUN-7",

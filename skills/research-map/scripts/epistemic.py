@@ -220,6 +220,11 @@ def path_exists_at(root: Path, ref: str, path: str) -> bool:
     return git(root, "cat-file", "-e", f"{ref}:{path}").returncode == 0
 
 
+def object_id_at(root: Path, ref: str, path: str) -> str:
+    result = git(root, "rev-parse", f"{ref}:{path}")
+    return result.stdout.strip() if result.returncode == 0 else ""
+
+
 def first_added_commit(root: Path, path: str) -> str:
     """Return the earliest commit that added this path, or an empty string."""
     result = git(root, "log", "--diff-filter=A", "--format=%H", "--", path)
@@ -271,6 +276,7 @@ def check_runs(root: Path, map_path: Path) -> tuple[Result, dict[str, dict], dic
     run_index: dict[str, dict] = {}
     result_index: dict[str, dict] = {}
     seen_results: set[str] = set()
+    data_fingerprints: dict[str, set[str]] = {}
     temporal_unverified = 0
 
     for path, data in runs:
@@ -461,6 +467,10 @@ def check_runs(root: Path, map_path: Path) -> tuple[Result, dict[str, dict], dic
                 result.fail(f"{rel}: input {data_id or '?'} role must be one of {sorted(DATA_ROLES)}")
             if temporal_ready and data_path and not path_exists_at(root, commit, data_path):
                 result.fail(f"{rel}: input {data_id or '?'} `{data_path}` did not exist at run commit {commit}")
+            elif temporal_ready and data_path and re.fullmatch(r"DATA\d+", data_id):
+                fingerprint = object_id_at(root, commit, data_path)
+                if fingerprint:
+                    data_fingerprints.setdefault(data_id, set()).add(fingerprint)
             if execution_ready and data_path and not path_exists_at(root, execution_freeze, data_path):
                 result.fail(f"{rel}: input {data_id or '?'} `{data_path}` did not exist at execution freeze {execution_freeze}")
 
@@ -554,6 +564,18 @@ def check_runs(root: Path, map_path: Path) -> tuple[Result, dict[str, dict], dic
                         "the result must be produced across the execution boundary"
                     )
 
+    stable_fingerprints: dict[str, str] = {}
+    for data_id, fingerprints in sorted(data_fingerprints.items()):
+        if len(fingerprints) > 1:
+            result.fail(
+                f"{data_id}: maps to multiple committed input contents across runs; "
+                "a changed/versioned dataset needs a new DATA id"
+            )
+        elif fingerprints:
+            stable_fingerprints[data_id] = next(iter(fingerprints))
+    for run_record in run_index.values():
+        run_record["_data_fingerprints"] = stable_fingerprints
+
     if result.status == "PASS" and temporal_unverified:
         result.unverified(f"{len(runs)} run(s); {temporal_unverified} temporal check(s) NOT_VERIFIED")
     elif result.status == "PASS":
@@ -641,6 +663,23 @@ def check_exposure(plan: dict[str, dict], runs: dict[str, dict]) -> Result:
             result.fail(
                 f"{run_id}: {hypothesis} has adaptive exposure to {', '.join(sorted(overlap))} "
                 "and reuses the same data as independent confirmatory/validation evidence"
+            )
+            continue
+
+        fingerprints = run.get("_data_fingerprints", {})
+        aliased = sorted(
+            (generated_id, independent_id)
+            for generated_id in generated
+            for independent_id in independent_inputs
+            if generated_id != independent_id
+            and fingerprints.get(generated_id)
+            and fingerprints.get(generated_id) == fingerprints.get(independent_id)
+        )
+        if aliased:
+            pairs = ", ".join(f"{left}={right}" for left, right in aliased)
+            result.fail(
+                f"{run_id}: {hypothesis} re-labels the same committed input content as independent evidence ({pairs}); "
+                "changing a DATA id does not restore independence"
             )
     if not plan and not runs:
         result.unverified("no analysis plan or runs; exposure cannot be checked")

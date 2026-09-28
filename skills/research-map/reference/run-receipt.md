@@ -17,7 +17,7 @@
 }
 ```
 
-`mode` for new runs is `confirmatory | exploratory`. Input role is `discovery | confirmatory | validation`. The validator also accepts historical `mode: validation` receipts and legacy `analysis_role` fields on non-confirmatory receipts so append-only history never requires rewriting; those fields confer no confirmatory authority.
+`mode` for new runs is `confirmatory | exploratory`. Input role is `discovery | confirmatory | validation`. A `DATA<n>` identity denotes one committed input version: if its Git object changes, use a new DATA id. When fingerprints are available from recorded runs, exposure checks also reject relabeling the same committed content under another DATA id as independent evidence. The validator accepts historical `mode: validation` receipts and legacy `analysis_role` fields on non-confirmatory receipts so append-only history never requires rewriting; those fields confer no confirmatory authority.
 
 Exploratory runs omit `analysis_role`; their receipt records what happened without certifying it against the current confirmatory plan.
 
