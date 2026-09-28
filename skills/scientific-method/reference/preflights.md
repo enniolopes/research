@@ -39,7 +39,7 @@ For construct/mechanism language, inspect the measure→interpretation bridge an
 
 ## CITE
 
-A source supports a proposition only after the relevant content has been retrieved and read. DOI/URL resolution proves identity/reachability, not semantic support. A source seen only through an abstract/excerpt is represented with that limitation.
+A source supports a proposition only after the relevant content has been retrieved and read. DOI/URL resolution proves identity/reachability, not semantic support. A source seen only through an abstract/excerpt is represented with that limitation. When the evidence-to-proposition relation is consequential and genuinely semantic, an optional `citation-entailment@1` assessment may record `SUPPORTS | CONTRADICTS | INSUFFICIENT` over the exact supplied text; it is auxiliary evidence, never a substitute for source inspection or a new gate.
 
 ## PUBLISH
 
