@@ -141,6 +141,17 @@ Registration: none
         self.assertTrue(any("duplicate key 'protocol'" in line for line in result.lines), result.lines)
         self.assertTrue(any("unknown key 'cache'" in line for line in result.lines), result.lines)
 
+
+    def test_last_session_requires_exactly_one_next(self):
+        gates = ["1A Problem — formulate", "1B Problem — establish", "2 Literature", "3 Protocol", "4 Data", "5 Analysis", "6 Writing", "7 Review", "8 Publication"]
+        text = self.map_text(gates).replace(
+            "- Next: test",
+            "- Next: test\n- Next: another",
+        )
+        result, _ = validate.check_map(text, self.root)
+        self.assertEqual(result.status, "FAIL")
+        self.assertTrue(any("exactly one `Next:`" in line for line in result.lines), result.lines)
+
     def test_disclosure_checks_first_column_too(self):
         (self.root / "documents" / "table.csv").write_text("3,label\n", encoding="utf-8")
         layout = {"documents": ["documents/"], "floor": ["5"]}

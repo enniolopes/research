@@ -1,6 +1,6 @@
 # Run receipt contract
 
-`.research/runs/RUN-<n>.json` is an append-only receipt describing one material execution. It is evidence about a run commit, not part of that commit.
+`.research/runs/RUN-<n>.json` is an append-only receipt describing one material execution. It is evidence about a run commit, not part of that commit. Every run mode records a valid Git `commit`, and that run commit must precede the first commit that adds the receipt.
 
 ## Common fields
 

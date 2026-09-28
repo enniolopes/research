@@ -57,7 +57,7 @@ Structural checks:
 
 - `map` — minimal schema, pointers, distinct 1A/1B/2–8 gates, problem-before-protocol and state integrity;
 - `numbers` — document and locally computed problem-brief numbers are present in committed aggregates at quoted precision (presence, not provenance);
-- `decisions` — append-only decision blocks and revision conditions;
+- `decisions` — decision block IDs/order, supersession references and revision conditions; Git preserves the edit history, but this check does not prove block immutability;
 - `disclosure` — no count cell below the map floor under documents;
 - `citations` — bibliographic resolution; offline is `NOT_VERIFIED`;
 - `notebooks` — no committed notebook outputs/execution counts.

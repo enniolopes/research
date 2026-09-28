@@ -229,6 +229,53 @@ class EpistemicTests(unittest.TestCase):
         result, _, _ = epistemic.check_runs(self.root, self.root / "RESEARCH.map")
         self.assertNotEqual(result.status, "FAIL", result.lines)
 
+
+    def test_exploratory_run_requires_commit(self):
+        (self.root / "aggregates" / "rx.txt").write_text("x\n", encoding="utf-8")
+        receipt = {
+            "id": "RUN-6",
+            "mode": "exploratory",
+            "hypothesis": "H6",
+            "estimand": "E6",
+            "test": "T6",
+            "commit": "",
+            "inputs": [{"id": "DATA1", "path": "data.csv", "role": "discovery"}],
+            "outputs": [{"result": "R6", "artifact": "aggregates/rx.txt"}],
+        }
+        (self.root / ".research" / "runs" / "RUN-6.json").write_text(json.dumps(receipt), encoding="utf-8")
+        result, _, _ = epistemic.check_runs(self.root, self.root / "RESEARCH.map")
+        self.assertEqual(result.status, "FAIL")
+        self.assertTrue(any("commit must be a git commit id" in line for line in result.lines), result.lines)
+
+    def test_receipt_commit_must_descend_from_run_commit(self):
+        base_branch = git(self.root, "branch", "--show-current")
+        git(self.root, "switch", "-c", "side-run")
+        artifact = self.root / "aggregates" / "side.txt"
+        artifact.write_text("same\n", encoding="utf-8")
+        git(self.root, "add", "aggregates/side.txt")
+        git(self.root, "commit", "-m", "side run")
+        side_commit = git(self.root, "rev-parse", "HEAD")
+
+        git(self.root, "switch", base_branch)
+        artifact.write_text("same\n", encoding="utf-8")
+        receipt = {
+            "id": "RUN-7",
+            "mode": "exploratory",
+            "hypothesis": "H7",
+            "estimand": "E7",
+            "test": "T7",
+            "commit": side_commit,
+            "inputs": [{"id": "DATA1", "path": "data.csv", "role": "discovery"}],
+            "outputs": [{"result": "R7", "artifact": "aggregates/side.txt"}],
+        }
+        path = self.root / ".research" / "runs" / "RUN-7.json"
+        path.write_text(json.dumps(receipt), encoding="utf-8")
+        git(self.root, "add", "aggregates/side.txt", str(path.relative_to(self.root)))
+        git(self.root, "commit", "-m", "receipt on unrelated branch")
+        result, _, _ = epistemic.check_runs(self.root, self.root / "RESEARCH.map")
+        self.assertEqual(result.status, "FAIL")
+        self.assertTrue(any("is not an ancestor of first receipt commit" in line for line in result.lines), result.lines)
+
     def test_exploratory_history_does_not_depend_on_current_plan(self):
         (self.root / "aggregates" / "rx.txt").write_text("x\n", encoding="utf-8")
         git(self.root, "add", "aggregates/rx.txt")

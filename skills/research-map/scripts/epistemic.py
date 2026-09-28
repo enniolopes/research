@@ -312,6 +312,11 @@ def check_runs(root: Path, map_path: Path) -> tuple[Result, dict[str, dict], dic
         temporal_ready = False
         execution_ready = False
 
+        if not COMMIT.fullmatch(commit):
+            result.fail(f"{rel}: commit must be a git commit id")
+        elif have_git and not commit_exists(root, commit):
+            result.fail(f"{rel}: git commit {commit} does not exist")
+
         receipt_commit = first_added_commit(root, rel) if have_git else ""
         legacy_execution_receipt = False
         if receipt_commit:
@@ -335,10 +340,21 @@ def check_runs(root: Path, map_path: Path) -> tuple[Result, dict[str, dict], dic
             temporal_unverified += 1
             result.lines.append(f"{rel}: receipt is not yet committed; append-only receipt check NOT_VERIFIED")
 
+        if (
+            receipt_commit
+            and COMMIT.fullmatch(commit)
+            and commit_exists(root, commit)
+            and (commit == receipt_commit or not is_ancestor(root, commit, receipt_commit))
+        ):
+            result.fail(
+                f"{rel}: run commit {commit} is not an ancestor of first receipt commit {receipt_commit}; "
+                "the receipt must be recorded after the run it describes"
+            )
+
         if mode == "confirmatory":
             if registration.lower() in EMPTY:
                 result.fail(f"{rel}: confirmatory run requires a recorded registration reference")
-            for label, ref in [("commit", commit), ("protocol_freeze", protocol_freeze), ("analysis_plan_freeze", plan_freeze)]:
+            for label, ref in [("protocol_freeze", protocol_freeze), ("analysis_plan_freeze", plan_freeze)]:
                 if not COMMIT.fullmatch(ref):
                     result.fail(f"{rel}: confirmatory {label} must be a git commit id")
             if not COMMIT.fullmatch(execution_freeze):
@@ -348,7 +364,7 @@ def check_runs(root: Path, map_path: Path) -> tuple[Result, dict[str, dict], dic
                 else:
                     result.fail(f"{rel}: confirmatory execution_freeze must be a git commit id")
             if have_git and all(COMMIT.fullmatch(value) for value in (commit, protocol_freeze, plan_freeze)):
-                missing = [ref for ref in (commit, protocol_freeze, plan_freeze) if not commit_exists(root, ref)]
+                missing = [ref for ref in (protocol_freeze, plan_freeze) if not commit_exists(root, ref)]
                 for ref in missing:
                     result.fail(f"{rel}: git commit {ref} does not exist")
                 if not missing:
@@ -409,6 +425,9 @@ def check_runs(root: Path, map_path: Path) -> tuple[Result, dict[str, dict], dic
             # legitimately change or remove the hypothesis/estimand that existed when this run occurred.
             if have_git and COMMIT.fullmatch(commit) and commit_exists(root, commit):
                 temporal_ready = True
+            elif not have_git and COMMIT.fullmatch(commit):
+                temporal_unverified += 1
+                result.lines.append(f"{rel}: git unavailable/not a work tree; run commit provenance NOT_VERIFIED")
 
         run_record = dict(data)
         run_record["_frozen_primary_test"] = frozen_primary
