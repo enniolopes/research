@@ -3,7 +3,7 @@ name: statistical-analysis
 description: Turn a research estimand and design into an inspectable analysis strategy before fitting. Defines data-exploration boundaries, dependence, missingness, assumptions, checks, fallbacks, sensitivity and interpretation limits for observational quantitative research. Use internally from scientific-method when an analysis plan is created or revised; it proposes methods but never changes a frozen confirmatory commitment silently.
 license: CC-BY-NC-4.0
 metadata:
-  version: 0.10.0
+  version: 0.11.0
 argument-hint: '<plan | eda | review-plan> [path]'
 ---
 
