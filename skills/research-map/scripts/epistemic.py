@@ -178,6 +178,19 @@ def git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(["git", *args], cwd=root, capture_output=True, text=True)
 
 
+def repo_path(root: Path, raw: str) -> Path | None:
+    path = Path(raw)
+    if path.is_absolute():
+        return None
+    root = root.resolve()
+    resolved = (root / path).resolve()
+    try:
+        resolved.relative_to(root)
+    except ValueError:
+        return None
+    return resolved
+
+
 def git_available(root: Path) -> bool:
     try:
         return git(root, "rev-parse", "--is-inside-work-tree").returncode == 0
@@ -381,11 +394,8 @@ def check_runs(root: Path, map_path: Path, plan: dict[str, dict]) -> tuple[Resul
                 temporal_unverified += 1
                 result.lines.append(f"{rel}: git unavailable/not a work tree; temporal ancestry NOT_VERIFIED")
         else:
-            current_entry = plan.get(hypothesis)
-            if current_entry is None:
-                result.fail(f"{rel}: non-confirmatory run references {hypothesis}, which is not in current analysis-plan.md")
-            elif estimand != current_entry["estimand"]:
-                result.fail(f"{rel}: estimand {estimand} disagrees with current {hypothesis} plan ({current_entry['estimand']})")
+            # Non-confirmatory history is not judged against the current plan: a later REOPEN may
+            # legitimately change or remove the hypothesis/estimand that existed when this run occurred.
             if have_git and COMMIT.fullmatch(commit) and commit_exists(root, commit):
                 temporal_ready = True
 
@@ -409,8 +419,12 @@ def check_runs(root: Path, map_path: Path, plan: dict[str, dict]) -> tuple[Resul
                 result.fail(f"{rel}: input id must be DATA<n>")
             if not data_path:
                 result.fail(f"{rel}: input {data_id or '?'} has no path")
-            elif not (root / data_path).exists():
-                result.fail(f"{rel}: input {data_id or '?'} path `{data_path}` does not exist")
+            else:
+                resolved_input = repo_path(root, data_path)
+                if resolved_input is None:
+                    result.fail(f"{rel}: input {data_id or '?'} path `{data_path}` escapes repository root")
+                elif not resolved_input.exists():
+                    result.fail(f"{rel}: input {data_id or '?'} path `{data_path}` does not exist")
             if role not in DATA_ROLES:
                 result.fail(f"{rel}: input {data_id or '?'} role must be one of {sorted(DATA_ROLES)}")
             if temporal_ready and data_path and show(root, commit, data_path) is None:
@@ -434,7 +448,9 @@ def check_runs(root: Path, map_path: Path, plan: dict[str, dict]) -> tuple[Resul
                     result.fail(f"{rel}: replay.environment must be a list of repository-relative paths")
                 elif execution_ready:
                     for environment_path in environment:
-                        if show(root, execution_freeze, environment_path) is None:
+                        if repo_path(root, environment_path) is None:
+                            result.fail(f"{rel}: replay environment `{environment_path}` escapes repository root")
+                        elif show(root, execution_freeze, environment_path) is None:
                             result.fail(f"{rel}: replay environment `{environment_path}` did not exist at execution freeze {execution_freeze}")
 
         outputs = data.get("outputs", [])
@@ -456,8 +472,10 @@ def check_runs(root: Path, map_path: Path, plan: dict[str, dict]) -> tuple[Resul
             if result_id in seen_results:
                 result.fail(f"{rel}: duplicate result id {result_id}")
             seen_results.add(result_id)
-            current_artifact = root / artifact if artifact else None
-            if current_artifact is None or not current_artifact.is_file():
+            current_artifact = repo_path(root, artifact) if artifact else None
+            if artifact and current_artifact is None:
+                result.fail(f"{rel}: {result_id} artifact `{artifact}` escapes repository root")
+            elif current_artifact is None or not current_artifact.is_file():
                 result.fail(f"{rel}: {result_id} artifact `{artifact or 'missing'}` does not exist")
             if temporal_ready and artifact:
                 frozen_artifact = show(root, commit, artifact)

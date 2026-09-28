@@ -16,6 +16,19 @@ def git(root: Path, *args: str, text: bool = True) -> subprocess.CompletedProces
     return subprocess.run(["git", *args], cwd=root, capture_output=True, text=text)
 
 
+def repo_path(root: Path, raw: str) -> Path | None:
+    path = Path(raw)
+    if path.is_absolute():
+        return None
+    root = root.resolve()
+    resolved = (root / path).resolve()
+    try:
+        resolved.relative_to(root)
+    except ValueError:
+        return None
+    return resolved
+
+
 def find_run(root: Path, requested: str) -> tuple[Path, dict] | None:
     run_id = requested.upper()
     run_dir = root / ".research" / "runs"
@@ -75,6 +88,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"REPLAY {run_id} ERROR — replay.environment must be a list of paths")
         return 1
     for item in environment:
+        if repo_path(root, item) is None:
+            print(f"REPLAY {run_id} ERROR — environment path escapes repository root: {item}")
+            return 1
         present = git(root, "cat-file", "-e", f"{execution_freeze}:{item}")
         if present.returncode != 0:
             print(f"REPLAY {run_id} ERROR — environment path missing at execution freeze: {item}")
@@ -88,6 +104,10 @@ def main(argv: list[str] | None = None) -> int:
     ]
     if not artifacts:
         print(f"REPLAY {run_id} ERROR — no declared output artifacts")
+        return 1
+    unsafe = [artifact for artifact in artifacts if repo_path(root, artifact) is None]
+    if unsafe:
+        print(f"REPLAY {run_id} ERROR — output path escapes repository root: {unsafe[0]}")
         return 1
 
     with tempfile.TemporaryDirectory(prefix=f"research-{run_id.lower()}-") as tmp:

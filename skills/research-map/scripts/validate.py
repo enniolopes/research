@@ -51,7 +51,7 @@ SECTIONS = [
 REQUIRED_SECTIONS = ["Layout", "Question", "Hypotheses", "Gates", "Deferred", "Last session"]
 LAYOUT_KEYS = ["protocol", "decisions", "aggregates", "documents", "notebooks", "references"]
 LAYOUT_OPTIONAL = {"floor"}  # minimum cell size for anything under `documents`; an integer
-PHASES = ["1", "2", "3", "4", "5", "6", "7", "8"]
+PHASES = ["1A", "1B", "2", "3", "4", "5", "6", "7", "8"]
 GATE_STATES = {"reached", "pending", "blocked"}
 HYPOTHESIS_STATES = {"CONFIRMED", "REFUTED", "INCONCLUSIVE", "BLOCKED", "NOT_VERIFIED", "—", "-"}
 OPEN_HYPOTHESES = {"—", "-"}
@@ -95,6 +95,25 @@ VERDICT = re.compile(r"^\s*(?:[-*]\s*)?(?:★\s*)?\**Verdict\**\s*:\**\s*(SHOWN|
 # A deferred idea carries the date it appeared and the condition under which it would enter.
 DEFERRED_ITEM = re.compile(r"^\s*[-*]\s*\d{4}-\d{2}-\d{2}:\s*.+\s[—-]\s*enters when:\s*\S.*$")
 NETWORK_REFUSED = {401, 403, 405, 429}
+
+
+def repo_path(root: Path, raw: str) -> Path | None:
+    """Resolve a repository-relative path without allowing absolute or parent traversal."""
+    path = Path(raw)
+    if path.is_absolute():
+        return None
+    root = root.resolve()
+    resolved = (root / path).resolve()
+    try:
+        resolved.relative_to(root)
+    except ValueError:
+        return None
+    return resolved
+
+
+def gate_phase(label: str) -> str:
+    match = re.match(r"^(1A|1B|[2-8])\b", label.strip(), re.I)
+    return match.group(1).upper() if match else ""
 
 
 @dataclass
@@ -230,9 +249,13 @@ def check_problem_brief(result: Result, root: Path, question_lines: list[str], l
         result.fail(f"Question: Problem is {state} but names no problem brief")
         return None
     path, _, anchor = pointers[0].partition("#")
-    if not (root / path).is_file():
+    resolved = repo_path(root, path)
+    if resolved is None:
+        result.fail(f"Question: problem brief path `{path}` escapes repository root")
+        return path
+    if not resolved.is_file():
         return None  # the pointer check reports it
-    body = section_at(root / path, anchor) if anchor else (root / path).read_text(encoding="utf-8", errors="replace")
+    body = section_at(resolved, anchor) if anchor else resolved.read_text(encoding="utf-8", errors="replace")
     if body is None:
         result.fail(f"Question: problem brief `{pointers[0]}` has no heading for anchor #{anchor}")
         return path
@@ -256,9 +279,12 @@ def check_problem_brief(result: Result, root: Path, question_lines: list[str], l
 def problem_statement_gaps(root: Path, pointer: str) -> list[str]:
     """Why the problem statement behind the Question pointer is incomplete; empty when complete."""
     path, _, anchor = pointer.partition("#")
-    if not anchor or not (root / path).is_file():
+    resolved = repo_path(root, path)
+    if resolved is None:
+        return ["escapes repository root"]
+    if not anchor or not resolved.is_file():
         return []  # no anchor, or a missing file: the pointer check reports the latter
-    body = section_at(root / path, anchor)
+    body = section_at(resolved, anchor)
     if body is None:
         return [f"has no heading for anchor #{anchor}"]
     missing = labelled_field_gaps(body, PROBLEM_FIELDS)
@@ -283,7 +309,10 @@ def check_map(text: str, root: Path) -> tuple[Result, dict[str, list[str]]]:
             result.fail(f"Layout: missing key '{key}'")
         else:
             for path in layout[key]:
-                if not (root / path).exists():
+                resolved = repo_path(root, path)
+                if resolved is None:
+                    result.fail(f"Layout: {key} → {path} escapes repository root")
+                elif not resolved.exists():
                     result.fail(f"Layout: {key} → {path} does not exist")
     if "floor" in layout and not (len(layout["floor"]) == 1 and layout["floor"][0].isdigit() and int(layout["floor"][0]) > 1):
         result.fail(f"Layout: floor must be one integer above 1 (the minimum cell size), not {', '.join(layout['floor'])!r}")
@@ -295,7 +324,10 @@ def check_map(text: str, root: Path) -> tuple[Result, dict[str, list[str]]]:
         for pointer in pointers_in(lines):
             pointer_count += 1
             target = pointer.split("#")[0]
-            if target and not (root / target).exists():
+            resolved = repo_path(root, target) if target else None
+            if target and resolved is None:
+                result.fail(f"{name}: pointer `{pointer}` escapes repository root")
+            elif target and not resolved.exists():
                 result.fail(f"{name}: pointer `{pointer}` does not resolve")
 
     question = "\n".join(sections.get("Question", []))
@@ -318,7 +350,12 @@ def check_map(text: str, root: Path) -> tuple[Result, dict[str, list[str]]]:
     for row in table_rows(sections.get("Gates", [])):
         if len(row) < 2:
             continue
-        phase = row[0].strip()[:1]
+        phase = gate_phase(row[0])
+        if not phase:
+            result.fail(f"Gates: unrecognized phase label '{row[0]}'")
+            continue
+        if phase in seen_phases:
+            result.fail(f"Gates: duplicate phase {phase}")
         seen_phases.add(phase)
         state = row[1].lower()
         if state not in GATE_STATES:
@@ -333,7 +370,7 @@ def check_map(text: str, root: Path) -> tuple[Result, dict[str, list[str]]]:
     if "Gates" in sections and missing_phases:
         result.fail(f"Gates: one row per phase; missing phase(s) {', '.join(missing_phases)}")
     for row in table_rows(sections.get("Gates", [])):
-        if len(row) >= 2 and row[0].strip()[:1] in set(PHASES[2:]) and row[1].lower() == "reached" and problem_state != "SHOWN":
+        if len(row) >= 2 and gate_phase(row[0]) in set(PHASES[2:]) and row[1].lower() == "reached" and problem_state != "SHOWN":
             result.fail(f"Gates: '{row[0]}' is reached but Problem is {problem_state or 'missing'}; the protocol does not freeze before the problem is SHOWN")
             break
 
@@ -391,7 +428,9 @@ def interpretations(token: str) -> list[tuple[float, int]]:
 def iter_files(root: Path, paths: list[str], suffixes: set[str]) -> list[Path]:
     files: list[Path] = []
     for p in paths:
-        path = root / p
+        path = repo_path(root, p)
+        if path is None:
+            continue
         if path.is_file() and path.suffix.lower() in suffixes:
             files.append(path)
         elif path.is_dir():
@@ -538,7 +577,7 @@ def check_disclosure(root: Path, layout: dict[str, list[str]]) -> Result:
                 if IGNORE_MARK.search(raw):
                     continue
                 row = [c.strip().strip('"\'') for c in re.split(r"[,;\t]", raw)]
-            for cell in row[1:]:  # the first column labels the row
+            for cell in row:
                 if re.fullmatch(r"\d+", cell):
                     cells += 1
                     if 0 < int(cell) < floor_value:
@@ -633,7 +672,7 @@ def bib_entries(text: str) -> list[tuple[str, str, str]]:
 
 def check_citations(root: Path, layout: dict[str, list[str]], offline: bool) -> Result:
     result = Result("citations")
-    files = [root / p for p in layout.get("references", []) if (root / p).is_file()]
+    files = [path for p in layout.get("references", []) if (path := repo_path(root, p)) is not None and path.is_file()]
     if not files:
         result.unverified("nothing to check: no references file in Layout")
         return result

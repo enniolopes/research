@@ -1,0 +1,150 @@
+from __future__ import annotations
+
+import importlib.util
+import json
+import subprocess
+import tempfile
+import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def load(name: str, relative: str):
+    spec = importlib.util.spec_from_file_location(name, ROOT / relative)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader
+    spec.loader.exec_module(module)
+    return module
+
+
+epistemic = load("research_epistemic", "skills/research-map/scripts/epistemic.py")
+
+
+def git(root: Path, *args: str) -> str:
+    result = subprocess.run(["git", *args], cwd=root, check=True, capture_output=True, text=True)
+    return result.stdout.strip()
+
+
+class EpistemicTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        git(self.root, "init")
+        git(self.root, "config", "user.email", "test@example.com")
+        git(self.root, "config", "user.name", "Test")
+        (self.root / "aggregates").mkdir()
+        (self.root / ".research" / "runs").mkdir(parents=True)
+        (self.root / "data.csv").write_text("x\n1\n", encoding="utf-8")
+        (self.root / "protocol.md").write_text("## H1\nregistered hypothesis\n", encoding="utf-8")
+        (self.root / "analysis-plan.md").write_text(
+            "Freeze: frozen\n\n## H1\n"
+            "Estimand: E1\nPrimary test: T1\nMode: confirmatory\nGenerated from: none\n"
+            "Dependence: independent\nMay claim: effect\nMay not claim: mechanism\n"
+            "CONFIRMED when: positive\nREFUTED when: negative\nINCONCLUSIVE when: includes zero\n"
+            "| A1 | assumption | K1 | BLOCKED |\n",
+            encoding="utf-8",
+        )
+        (self.root / "RESEARCH.map").write_text(
+            "## Layout\n- protocol: protocol.md\n- decisions: decisions.md\n"
+            "- aggregates: aggregates/\n- documents: documents/\n- notebooks: notebooks/\n"
+            "- references: references.bib\n",
+            encoding="utf-8",
+        )
+        for name in ("documents", "notebooks"):
+            (self.root / name).mkdir()
+        (self.root / "decisions.md").write_text("", encoding="utf-8")
+        (self.root / "references.bib").write_text("", encoding="utf-8")
+        git(self.root, "add", ".")
+        git(self.root, "commit", "-m", "execution freeze")
+        self.freeze = git(self.root, "rev-parse", "HEAD")
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def make_confirmatory_receipt(self, extra_change: bool = False) -> Path:
+        (self.root / "aggregates" / "r1.txt").write_text("42\n", encoding="utf-8")
+        if extra_change:
+            (self.root / "protocol.md").write_text("## H1\nchanged after freeze\n", encoding="utf-8")
+        git(self.root, "add", ".")
+        git(self.root, "commit", "-m", "run outputs")
+        run_commit = git(self.root, "rev-parse", "HEAD")
+        receipt = {
+            "id": "RUN-1",
+            "mode": "confirmatory",
+            "analysis_role": "primary",
+            "hypothesis": "H1",
+            "estimand": "E1",
+            "test": "T1",
+            "commit": run_commit,
+            "protocol_freeze": self.freeze,
+            "analysis_plan_freeze": self.freeze,
+            "execution_freeze": self.freeze,
+            "registration": "https://example.org/registration",
+            "inputs": [{"id": "DATA1", "path": "data.csv", "role": "confirmatory"}],
+            "outputs": [{"result": "R1", "artifact": "aggregates/r1.txt"}],
+        }
+        path = self.root / ".research" / "runs" / "RUN-1.json"
+        path.write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
+        git(self.root, "add", str(path.relative_to(self.root)))
+        git(self.root, "commit", "-m", "record receipt")
+        return path
+
+    def test_output_only_execution_boundary_passes(self):
+        self.make_confirmatory_receipt()
+        plan, _, _ = epistemic.parse_plan(self.root)
+        result, _, _ = epistemic.check_runs(self.root, self.root / "RESEARCH.map", plan)
+        self.assertEqual(result.status, "PASS", result.lines)
+
+    def test_non_output_change_after_execution_freeze_fails(self):
+        self.make_confirmatory_receipt(extra_change=True)
+        plan, _, _ = epistemic.parse_plan(self.root)
+        result, _, _ = epistemic.check_runs(self.root, self.root / "RESEARCH.map", plan)
+        self.assertEqual(result.status, "FAIL")
+        self.assertTrue(any("non-output path(s) changed" in line for line in result.lines), result.lines)
+
+    def test_receipt_rewrite_is_detected(self):
+        path = self.make_confirmatory_receipt()
+        data = json.loads(path.read_text(encoding="utf-8"))
+        data["registration"] = "rewritten"
+        path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+        plan, _, _ = epistemic.parse_plan(self.root)
+        result, _, _ = epistemic.check_runs(self.root, self.root / "RESEARCH.map", plan)
+        self.assertEqual(result.status, "FAIL")
+        self.assertTrue(any("run receipt changed after first commit" in line for line in result.lines), result.lines)
+
+    def test_validation_input_cannot_reuse_adaptive_data(self):
+        plan = {"H1": {"generated_from": ["DATA2"]}}
+        runs = {
+            "RUN-1": {
+                "mode": "confirmatory",
+                "hypothesis": "H1",
+                "_frozen_generated_from": ["DATA2"],
+                "_frozen_primary_test": "T1",
+                "inputs": [{"id": "DATA2", "role": "validation"}],
+            }
+        }
+        result = epistemic.check_exposure(plan, runs)
+        self.assertEqual(result.status, "FAIL")
+
+    def test_exploratory_history_does_not_depend_on_current_plan(self):
+        (self.root / "aggregates" / "rx.txt").write_text("x\n", encoding="utf-8")
+        receipt = {
+            "id": "RUN-9",
+            "mode": "exploratory",
+            "analysis_role": "diagnostic",
+            "hypothesis": "H9",
+            "estimand": "E9",
+            "test": "T9",
+            "commit": self.freeze,
+            "inputs": [{"id": "DATA1", "path": "data.csv", "role": "discovery"}],
+            "outputs": [{"result": "R9", "artifact": "aggregates/rx.txt"}],
+        }
+        path = self.root / ".research" / "runs" / "RUN-9.json"
+        path.write_text(json.dumps(receipt) + "\n", encoding="utf-8")
+        result, _, _ = epistemic.check_runs(self.root, self.root / "RESEARCH.map", {})
+        self.assertNotEqual(result.status, "FAIL", result.lines)
+
+
+if __name__ == "__main__":
+    unittest.main()
