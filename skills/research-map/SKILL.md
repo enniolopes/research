@@ -47,7 +47,7 @@ Update only on observable events: gate state/evidence changed, hypothesis termin
 
 ## `validate`
 
-Run the composed 0.10 validator:
+Run the composed 0.11 validator:
 
 ```bash
 python3 "${CLAUDE_SKILL_DIR}/scripts/validate_all.py" RESEARCH.map --offline
