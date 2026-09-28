@@ -3,7 +3,7 @@ name: statistical-analysis
 description: Turn a research estimand and design into an inspectable analysis strategy before fitting. Defines data-exploration boundaries, dependence, missingness, assumptions, checks, fallbacks, sensitivity and interpretation limits for observational quantitative research. Use internally from scientific-method when an analysis plan is created or revised; it proposes methods but never changes a frozen confirmatory commitment silently.
 license: CC-BY-NC-4.0
 metadata:
-  version: 0.9.0
+  version: 0.10.0
 argument-hint: '<plan | eda | review-plan> [path]'
 ---
 
@@ -29,7 +29,7 @@ Read only the references needed for the current decision:
 
 You may propose candidate methods, diagnostics and sensitivity analyses. You may not silently change the estimand, population, exposure, outcome, primary test, threshold or confirmatory fallback after exposure to a result. A choice that changes the scientific question returns to `scientific-method` as `REOPEN`; a defensible alternative that preserves the same estimand is a prospective specification dimension; a result-driven new idea is `EXPLORATORY`.
 
-Method knowledge is advisory until its primary source has been read for the condition being encoded. A plausible method remembered by the model is a candidate, not a rule.
+Method knowledge is advisory until the relevant source has been inspected for the condition being encoded. A plausible method remembered by the model is a candidate, not a rule. Record method-specific evidence in the analysis plan or decision that uses it; do not create a separate method-card subsystem.
 
 When observed data cause a new confirmatory model, threshold, feature set, population, fallback or decision rule to be invented or selected, record those data in `Generated from:`; they cannot later serve as independent confirmatory/validation evidence for that adaptive choice. Data that merely activate an already-frozen diagnostic/fallback rule are not generative exposure.
 

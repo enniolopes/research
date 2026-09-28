@@ -15,14 +15,14 @@ Install the plugin from this repository:
 /plugin install research@enniolopes
 ```
 
-For the full phase-1 exploration workflow, also install the optional `explorer` skill from the skills marketplace:
+`research` already includes `explorer` because it is bundled under this plugin's `skills/` directory. No second marketplace is required.
+
+To install only the standalone explorer without the research system:
 
 ```text
-/plugin marketplace add enniolopes/skills
+/plugin marketplace add enniolopes/research
 /plugin install explorer@enniolopes
 ```
-
-Without `explorer`, the research system remains usable; the affected exploration is recorded as `NOT_VERIFIED` rather than invented.
 
 Start a new research project:
 
@@ -135,10 +135,15 @@ python3 <installed research-map>/scripts/replay.py RUN-4 --root .
 
 Replay returns `EXACT | DRIFT | ERROR | NOT_VERIFIED`.
 
-## Explorer
+## Runtime and development
 
-`explorer` is installed separately and is used for structural divergence and hypothesis generation. If it is unavailable, the affected exploration is `NOT_VERIFIED`; the rest of `research` remains usable.
+The runtime uses only the Python standard library and supports Python 3.10+. CI compiles the runtime and runs regression tests on Python 3.10 and 3.12.
 
-## Development evidence
+```text
+python -m unittest discover -s tests -v
+python -m py_compile skills/research-map/scripts/*.py skills/research-graph/scripts/*.py
+```
 
-Development evals and regression tests are maintained in the source skills monorepo; this repository contains the installable research runtime.
+The research plugin and its internal research skills share version `0.10.0`. The bundled `explorer` also remains installable standalone and keeps its own version line (`1.1.0`).
+
+The regression tests protecting this runtime live in this repository.

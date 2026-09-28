@@ -157,7 +157,7 @@ A later finding can reopen an earlier phase. Skipping a required phase is a logg
 
 ## Delegation
 
-- `explorer` — separately installed phase 1 structural divergence/hypothesis-lineage delegate. Its absence makes the affected exploration `NOT_VERIFIED`; it does not disable the rest of `research`.
+- `explorer` — bundled phase-1 structural divergence/hypothesis-lineage delegate; it is also exposed as a standalone marketplace entry.
 - `statistical-analysis` — estimand-first analysis plan, EDA boundary, dependence and missingness decisions.
 - `research-map` — operational memory and composed mechanical validation.
 - `research-graph` — in-memory lineage trace/why/changed queries.
