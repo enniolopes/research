@@ -410,8 +410,11 @@ def check_map(text: str, root: Path) -> tuple[Result, dict[str, list[str]]]:
     last = sections.get("Last session", [])
     if not any(re.match(r"^\s*[-*]\s*\d{4}-\d{2}-\d{2}", l) for l in last):
         result.fail("Last session: no dated line (`- YYYY-MM-DD: ...`)")
-    if not any(re.search(r"\bNext:", l) for l in last):
+    next_lines = [l for l in last if re.search(r"\bNext:", l)]
+    if not next_lines:
         result.fail("Last session: no `Next:` line")
+    elif len(next_lines) > 1:
+        result.fail("Last session: exactly one `Next:` line is allowed")
 
     result.summary = f"{len(present)}/{len(SECTIONS)} sections, {pointer_count} pointers"
     return result, layout
