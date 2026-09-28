@@ -2,6 +2,8 @@
 
 Phases locate the research. Preflights govern the consequential action about to happen.
 
+When `.research/policy.json` exists, consult the capability policy before sending matched repository resources across a model or network egress boundary. `ALLOW` is authorization, not proof of physical enforcement; `DENY`, `UNDECLARED`, or invalid policy blocks the attempted egress until the boundary is changed or an authorized route is used.
+
 ## FIT
 
 Before exposing a confirmatory result, require:

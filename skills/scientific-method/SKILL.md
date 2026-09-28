@@ -72,6 +72,8 @@ Do not invent human authority: which question matters, field meaning not recover
 
 Do not own software engineering. Research topology remains the map's six layout pointers: protocol, decisions, aggregates, documents, notebooks, references. Packages, CI, application architecture and build systems are separate engineering concerns.
 
+When a project declares `.research/policy.json`, treat it as the deterministic authorization boundary for model/network egress of matched repository resources. A policy decision does not imply that the host physically enforced the restriction; never report enforcement that the execution environment cannot demonstrate.
+
 ## Problem first
 
 Phase 1 is not ceremony. Before optimizing an answer, establish that the research has a precise, falsifiable question and that any empirical premise needed to justify the research survives an attempt to make it disappear.
