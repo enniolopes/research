@@ -9,6 +9,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+VALIDATE_ALL = ROOT / "skills" / "research-map" / "scripts" / "validate_all.py"
 
 
 def load(name: str, relative: str):
@@ -79,6 +80,27 @@ class ExecutionSpecTests(unittest.TestCase):
         self.commit_freeze()
         result = execute.check_execution_specs(self.root)
         self.assertEqual(result.status, "PASS", result.lines)
+
+        (self.root / "RESEARCH.map").write_text("# execution-only validation\n", encoding="utf-8")
+        git(self.root, "add", "RESEARCH.map")
+        git(self.root, "commit", "-m", "add validator entrypoint")
+        composed = subprocess.run(
+            [
+                sys.executable,
+                str(VALIDATE_ALL),
+                "RESEARCH.map",
+                "--root",
+                str(self.root),
+                "--only",
+                "executions",
+            ],
+            cwd=self.root,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(composed.returncode, 0, composed.stdout + composed.stderr)
+        self.assertIn("executions", composed.stdout)
+        self.assertIn("RESULT PASS", composed.stdout)
 
         payload = json.loads(path.read_text(encoding="utf-8"))
         payload["outputs"] = ["aggregates/other.txt"]
