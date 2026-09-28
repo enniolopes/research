@@ -131,6 +131,30 @@ class EpistemicTests(unittest.TestCase):
         self.assertEqual(result.status, "FAIL")
         self.assertTrue(any("do not match frozen EXEC-2 outputs" in line for line in result.lines), result.lines)
 
+    def test_exploratory_run_can_opt_into_execution_spec_boundary(self):
+        (self.root / "aggregates" / "r1.txt").write_text("42\n", encoding="utf-8")
+        git(self.root, "add", "aggregates/r1.txt")
+        git(self.root, "commit", "-m", "exploratory output")
+        run_commit = git(self.root, "rev-parse", "HEAD")
+        receipt = {
+            "id": "RUN-5",
+            "mode": "exploratory",
+            "hypothesis": "H1",
+            "estimand": "E1",
+            "test": "T1",
+            "commit": run_commit,
+            "execution_freeze": self.freeze,
+            "execution_spec": "EXEC-1",
+            "inputs": [{"id": "DATA1", "path": "data.csv", "role": "discovery"}],
+            "outputs": [{"result": "R1", "artifact": "aggregates/r1.txt"}],
+        }
+        path = self.root / ".research" / "runs" / "RUN-5.json"
+        path.write_text(json.dumps(receipt) + "\n", encoding="utf-8")
+        git(self.root, "add", str(path.relative_to(self.root)))
+        git(self.root, "commit", "-m", "record exploratory receipt")
+        result, _, _ = epistemic.check_runs(self.root, self.root / "RESEARCH.map")
+        self.assertEqual(result.status, "PASS", result.lines)
+
     def test_output_only_execution_boundary_passes(self):
         self.make_confirmatory_receipt()
         plan, _, _ = epistemic.parse_plan(self.root)
