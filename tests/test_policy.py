@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+VALIDATE_ALL = ROOT / "skills" / "research-map" / "scripts" / "validate_all.py"
 
 
 def load(name: str, relative: str):
@@ -71,6 +73,25 @@ class PolicyTests(unittest.TestCase):
             policy.decide(self.root, "notes/private.txt", "model_egress"),
             ("UNDECLARED", ""),
         )
+
+        (self.root / "RESEARCH.map").write_text("# policy-only validation\n", encoding="utf-8")
+        composed = subprocess.run(
+            [
+                sys.executable,
+                str(VALIDATE_ALL),
+                "RESEARCH.map",
+                "--root",
+                str(self.root),
+                "--only",
+                "policy",
+            ],
+            cwd=self.root,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(composed.returncode, 0, composed.stdout + composed.stderr)
+        self.assertIn("policy", composed.stdout)
+        self.assertIn("RESULT PASS", composed.stdout)
 
     def test_overlapping_resource_rules_are_rejected(self):
         self.write(
