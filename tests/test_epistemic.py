@@ -132,7 +132,6 @@ class EpistemicTests(unittest.TestCase):
         receipt = {
             "id": "RUN-9",
             "mode": "exploratory",
-            "analysis_role": "diagnostic",
             "hypothesis": "H9",
             "estimand": "E9",
             "test": "T9",

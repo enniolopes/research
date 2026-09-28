@@ -24,12 +24,8 @@ Fixed sections, in order:
 |---|---|
 | `## Layout` | `protocol`, `decisions`, `aggregates`, `documents`, `notebooks`, `references`; optional disclosure `floor` |
 | `## Question` | question pointer; `Problem:` state/brief; `Registration:` state |
-| `## Hypotheses` | prediction, refutation, terminal state and pointer; at most three open |
-| `## Gates` | one row per phase; state plus evidence for every reached gate |
-| `## Facts that were once wrong` | optional correction memory only when no authoritative artifact already communicates it |
-| `## Provenance` | optional input pointers not already captured elsewhere |
-| `## Verification` | optional repository-specific commands not documented elsewhere |
-| `## Open decisions` | optional unresolved decisions not already represented as a blocked gate |
+| `## Hypotheses` | prediction, refutation, terminal state and pointer; keep the active portfolio intentionally small |
+| `## Gates` | one row for 1A, 1B and phases 2–8; state plus evidence for every reached gate |
 | `## Deferred` | post-freeze ideas not admitted, dated with entry condition |
 | `## Last session` | dated state changes and exactly one `Next:` line |
 
@@ -41,7 +37,7 @@ Build a map from an existing protocol and decision log. Fill only state that bel
 
 ## `resume`
 
-Before the first research action in an existing repository, read the map and the authoritative artifacts needed for its active question. Return one screen: question and permitted conclusion; decisive evidence and main limitation; next action and material blockers; last change. Include gate/registration/deferred detail only when it changes that action. Then run `validate` before other research work. Do not imply a conclusion merely from a gate state.
+Before the first research action in an existing repository, read the map and only the authoritative artifacts needed for the active question. Return one screen: question and permitted conclusion; decisive evidence and main limitation; next action and material blockers; last change. Then run the fast integrity subset `--only map,plan,runs,exposure`. Full validation is reserved for commits, review and publication. Do not imply a conclusion merely from a gate state.
 
 A stale map never outranks current executable/source evidence. If map narrative conflicts with current code/data/artifacts, surface the contradiction, use verifiable current evidence and preserve the correction.
 
@@ -59,8 +55,8 @@ python3 "${CLAUDE_SKILL_DIR}/scripts/validate_all.py" RESEARCH.map --offline
 
 Legacy checks remain unchanged:
 
-- `map` — schema, pointers, gates/evidence, hypothesis cap, problem-before-protocol and state integrity;
-- `numbers` — document/problem-brief numbers are present in committed aggregates at quoted precision (presence, not provenance);
+- `map` — minimal schema, pointers, distinct 1A/1B/2–8 gates, problem-before-protocol and state integrity;
+- `numbers` — document and locally computed problem-brief numbers are present in committed aggregates at quoted precision (presence, not provenance);
 - `decisions` — append-only decision blocks and revision conditions;
 - `disclosure` — no count cell below the map floor under documents;
 - `citations` — bibliographic resolution; offline is `NOT_VERIFIED`;
@@ -70,7 +66,7 @@ The epistemic checks add:
 
 - `plan` — stable H/E/T IDs, decision rules, assumptions/checks/failure actions, dependence and interpretation boundary;
 - `runs` — append-only run receipts, result artifacts, confirmatory plan/execution freeze ancestry, and a freeze→run diff containing only declared outputs;
-- `lineage` — material claim annotations resolve through inference/result/run and hypothesis-deciding claims use the planned primary test;
+- `lineage` — material claim annotations resolve through result/run and hypothesis-deciding claims use the planned primary test;
 - `exposure` — data whose observed content generated or selected a non-precommitted confirmatory choice are not silently reused as independent confirmatory or validation evidence. Triggering an already-frozen rule is not adaptive generation.
 
 A check with nothing to examine reports `NOT_VERIFIED`, never `PASS`. Exit is nonzero on `FAIL`; `--strict` also treats `NOT_VERIFIED` as failure.
@@ -93,4 +89,4 @@ It returns `EXACT`, `DRIFT`, `ERROR`, or `NOT_VERIFIED`. Replay is useful eviden
 
 ## Boundaries
 
-A number belongs in an aggregate; a scientific commitment in protocol/analysis plan; a methodological choice in the decision log; an execution in a run manifest; a claim in the manuscript; relations in the derived graph. The map points and navigates. It does not absorb those roles.
+A number belongs in an aggregate; a scientific commitment in protocol/analysis plan; a methodological choice in the decision log; an execution in a run receipt; a claim in the manuscript. Lineage is derived on demand. The map only points to current state and next action.

@@ -14,7 +14,7 @@ H_HEADING = re.compile(r"^##\s+(H\d+)\s*$", re.M)
 ASSUMPTION_ROW = re.compile(r"^\|\s*(A\d+)\s*\|\s*([^|]+?)\s*\|\s*(K\d+)\s*\|\s*([^|]+?)\s*\|\s*$", re.M)
 CLAIM = re.compile(r"<!--\s*claim:(C\d+)\s+(?:inference:(I\d+)\s+)?result:(R\d+)(?:\s+decides:(H\d+))?\s*-->", re.I)
 COMMIT = re.compile(r"^[0-9a-f]{7,40}$", re.I)
-RUN_MODES = {"confirmatory", "exploratory", "validation"}
+RUN_MODES = {"confirmatory", "exploratory"}
 ANALYSIS_ROLES = {"primary", "sensitivity", "specification", "diagnostic"}
 DATA_ROLES = {"discovery", "confirmatory", "validation"}
 
@@ -277,8 +277,10 @@ def check_runs(root: Path, map_path: Path, plan: dict[str, dict]) -> tuple[Resul
         analysis_role = str(data.get("analysis_role", "")).lower()
         if mode not in RUN_MODES:
             result.fail(f"{rel}: mode must be one of {sorted(RUN_MODES)}")
-        if analysis_role not in ANALYSIS_ROLES:
-            result.fail(f"{rel}: analysis_role must be one of {sorted(ANALYSIS_ROLES)}")
+        if mode == "confirmatory" and analysis_role not in ANALYSIS_ROLES:
+            result.fail(f"{rel}: confirmatory analysis_role must be one of {sorted(ANALYSIS_ROLES)}")
+        elif mode == "exploratory" and analysis_role:
+            result.fail(f"{rel}: exploratory runs omit analysis_role; the run mode already carries that meaning")
 
         hypothesis = str(data.get("hypothesis", "")).upper()
         estimand = str(data.get("estimand", "")).upper()

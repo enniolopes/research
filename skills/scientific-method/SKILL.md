@@ -48,7 +48,7 @@ The eight research phases below remain the lifecycle/navigation layer. Preflight
 - `replay RUN-<n>` — invoke the research-map replay helper when the run records a replay recipe; report `EXACT | DRIFT | ERROR | NOT_VERIFIED` without treating replay status as scientific truth.
 - anything else — answer the user's normal research request, but run the applicable preflight before a consequential action.
 
-On an existing repository, invoke `research-map resume` before the first research action. The user does not need to request it. Update the map on observable state changes and validate before commits/release.
+On an existing repository, invoke `research-map resume` before the first research action. Resume runs only the fast `map,plan,runs,exposure` subset; run full validation before commits, review and release. Update the map only on observable state changes.
 
 For external review without a native map, use the external-review route instead of initializing a fictitious research history. Read `reference/inference-and-revision.md` when interpreting constructs/mechanisms, selecting a discriminating investigation or revising an existing conclusion. Keep its bridge in existing authoritative artifacts; a new ontology or database is not required.
 
@@ -76,9 +76,9 @@ Do not own software engineering. Research topology remains the map's six layout 
 
 Phase 1 is not ceremony. Before optimizing an answer, establish that the research has a precise, falsifiable question and that any empirical premise needed to justify the research survives an attempt to make it disappear.
 
-Gate 1A writes the problem statement from `reference/problem-statement.md`: claim, unit, estimand, refutation, objection, who cares and non-goals. Log the exploration budget before invoking `explorer`; converge to at most three open hypotheses; route non-adopted lineages to `Deferred`.
+Gate 1A writes the problem statement from `reference/problem-statement.md`: claim, unit, estimand, refutation, objection, who cares and non-goals. Log an exploration budget before invoking `explorer`; default to a small active portfolio (usually up to three), but allow more when a logged scope decision and budget justify them. Route non-adopted lineages to `Deferred`.
 
-Gate 1B writes the problem brief from `reference/problem-brief.md`. It tests construct, population, measure, pre-fixed reference and magnitude using executed evidence, and attempts falsification before assertion. Its verdict is `SHOWN | NOT_SHOWN | INCONCLUSIVE`. `NOT_SHOWN` closes or reformulates the research; it is not failure. The confirmatory protocol does not freeze while a required premise is unestablished.
+Gate 1B writes the problem brief from `reference/problem-brief.md`. It establishes the empirical premise using either inspected external evidence or local executed evidence, states construct/population/measure/reference/magnitude, and attempts falsification before assertion. Local evidence is checked against aggregates; external evidence follows CITE. `NOT_SHOWN` closes or reformulates the research; it is not failure. The confirmatory protocol does not freeze while a required premise is unestablished.
 
 Read `reference/01-problem.md` when entering/reopening phase 1.
 
@@ -162,7 +162,7 @@ Read only the entered phase reference, plus `reference/preflights.md` when a pre
 
 | # | Phase | Dominant operation | Exit gate | Read |
 |---|---|---|---|---|
-| 1A | Problem — formulate | EXPLORE → COMMIT | exploration budget logged; explorer invoked; complete problem statement; <=3 open hypotheses; others Deferred | `reference/01-problem.md`, `reference/problem-statement.md` |
+| 1A | Problem — formulate | EXPLORE → COMMIT | exploration budget logged; explorer invoked; complete problem statement; active portfolio bounded by explicit scope/budget; others Deferred | `reference/01-problem.md`, `reference/problem-statement.md` |
 | 1B | Problem — establish | EXECUTE → CHALLENGE | problem brief complete; `SHOWN`, or explicit `NOT_SHOWN`/`INCONCLUSIVE` consequence | `reference/problem-brief.md` |
 | 2 | Literature | EXPLORE → JUSTIFY | relevant sources identified/retrieved/read at the level used; gap stated | `reference/02-literature.md` |
 | 3 | Protocol | COMMIT | hypotheses/estimands/tests/rules fixed; registration derived; protocol freeze recorded | `reference/03-protocol.md` |
