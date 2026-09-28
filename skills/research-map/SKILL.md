@@ -1,10 +1,10 @@
 ---
 name: research-map
-description: Operational memory and mechanical validation across sessions for one research repository. Keeps a small RESEARCH.map pointing to authoritative artifacts, resumes state before work, updates on observable state changes, and composes structural and epistemic integrity checks for research 0.10. Normally invoked internally by scientific-method; direct modes remain available for debugging and power users.
+description: Operational memory and mechanical validation across sessions for one research repository. Keeps a small RESEARCH.map pointing to authoritative artifacts, resumes state before work, updates on observable state changes, and composes structural and epistemic integrity checks for research 0.11. Normally invoked internally by scientific-method; direct modes remain available for debugging and power users.
 when_to_use: Use internally at the start of an existing research session, after gate/hypothesis/registration/corrected-number changes, and before commits or release. Direct triggers include resume, status, validate, update the map, or initialize an existing research.
 license: CC-BY-NC-4.0
 metadata:
-  version: 0.10.0
+  version: 0.11.0
 argument-hint: 'init|resume|update|validate [path to RESEARCH.map]'
 ---
 
@@ -69,7 +69,7 @@ The epistemic checks add:
 - `lineage` — material claim annotations resolve through result/run and hypothesis-deciding claims use the planned primary test;
 - `exposure` — data whose observed content generated or selected a non-precommitted confirmatory choice are not silently reused as independent confirmatory or validation evidence. Triggering an already-frozen rule is not adaptive generation.
 
-When `.research/assessments/` exists, full validation also checks `assessments`: schema, versioned answer domain, exact evidence-text digest and append-only history. When `.research/policy.json` exists, it also checks `policy`: unambiguous repository-relative resource selectors and explicit egress decisions. Projects without either optional artifact keep the previous validation behavior.
+When `.research/assessments/` exists, full validation also checks `assessments`: schema, versioned answer domain, exact evidence-text digest and append-only history. When `.research/executions/` exists, it checks `executions`: prospective command/resource/output contracts and append-only history. When `.research/policy.json` exists, it checks `policy`: unambiguous repository-relative resource selectors and explicit egress decisions. Projects without these optional artifacts keep the previous validation behavior.
 
 A check with nothing to examine reports `NOT_VERIFIED`, never `PASS`. Exit is nonzero on `FAIL`; `--strict` also treats `NOT_VERIFIED` as failure.
 
