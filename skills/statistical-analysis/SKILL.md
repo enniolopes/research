@@ -56,7 +56,7 @@ Exploratory data analysis answers whether the observed data-generating structure
 
 Every material finding ends in exactly one routing consequence:
 
-`NO_CHANGE | SPECIFICATION | SENSITIVITY | DATA_PROBLEM | EXPLORATORY_ONLY | PROTOCOL_REOPEN | BLOCKED`.
+`NO_CHANGE | SPECIFICATION | SENSITIVITY | DATA_PROBLEM | EXPLORATORY | REOPEN | BLOCKED`.
 
 Discovery EDA may generate hypotheses, but the data that generated them are recorded as exposure. Confirmatory-support EDA after freeze is restricted to planned quality checks, assumptions, diagnostics and prospective fallbacks. It cannot redefine the target because the observed outcome made another target attractive.
 

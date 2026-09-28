@@ -7,7 +7,7 @@
 - documents: <path/to/paper/>
 - notebooks: <path/to/notebooks/>
 - references: <path/to/references.bib>
-- floor: <minimum cell size for anything under documents, e.g. 5>
+<!-- Optional when a disclosure floor applies: `- floor: 5` -->
 
 ## Question
 <one line> → `<path/to/protocol.md#question>`   (that section carries the problem statement fields)

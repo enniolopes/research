@@ -18,8 +18,8 @@ Every material EDA finding is routed as one of:
 - `SPECIFICATION` — a defensible prospective alternative preserving the same estimand.
 - `SENSITIVITY` — a robustness analysis that does not decide the primary hypothesis.
 - `DATA_PROBLEM` — data quality or measurement threatens the planned analysis.
-- `EXPLORATORY_ONLY` — useful finding discovered through exposure, not confirmatory evidence.
-- `PROTOCOL_REOPEN` — the scientific commitment itself must change.
+- `EXPLORATORY` — useful finding discovered through exposure, not confirmatory evidence.
+- `REOPEN` — the scientific commitment itself must change.
 - `BLOCKED` — missing data/authority prevents a defensible next step.
 
 Do not produce a gallery of plots. Every plot or diagnostic states the question it answers and the routing consequence of the observed result.

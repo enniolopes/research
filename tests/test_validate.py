@@ -116,6 +116,31 @@ Registration: none
         self.assertEqual(result.status, "PASS", result.lines)
         self.assertNotIn("_brief", layout)
 
+
+    def test_unknown_map_section_is_rejected_but_legacy_section_is_tolerated(self):
+        gates = ["1A Problem — formulate", "1B Problem — establish", "2 Literature", "3 Protocol", "4 Data", "5 Analysis", "6 Writing", "7 Review", "8 Publication"]
+        base = self.map_text(gates)
+
+        unknown = base.replace("## Deferred", "## Arbitrary\ntext\n\n## Deferred")
+        result, _ = validate.check_map(unknown, self.root)
+        self.assertEqual(result.status, "FAIL")
+        self.assertTrue(any("unexpected section '## Arbitrary'" in line for line in result.lines), result.lines)
+
+        legacy = base.replace("## Deferred", "## Verification\n- legacy command\n\n## Deferred")
+        result, _ = validate.check_map(legacy, self.root)
+        self.assertNotEqual(result.status, "FAIL", result.lines)
+
+    def test_layout_duplicate_and_unknown_keys_are_rejected(self):
+        gates = ["1A Problem — formulate", "1B Problem — establish", "2 Literature", "3 Protocol", "4 Data", "5 Analysis", "6 Writing", "7 Review", "8 Publication"]
+        text = self.map_text(gates).replace(
+            "- references: references.bib",
+            "- references: references.bib\n- protocol: protocol.md\n- cache: somewhere/",
+        )
+        result, _ = validate.check_map(text, self.root)
+        self.assertEqual(result.status, "FAIL")
+        self.assertTrue(any("duplicate key 'protocol'" in line for line in result.lines), result.lines)
+        self.assertTrue(any("unknown key 'cache'" in line for line in result.lines), result.lines)
+
     def test_disclosure_checks_first_column_too(self):
         (self.root / "documents" / "table.csv").write_text("3,label\n", encoding="utf-8")
         layout = {"documents": ["documents/"], "floor": ["5"]}

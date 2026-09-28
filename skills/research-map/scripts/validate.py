@@ -39,7 +39,9 @@ from pathlib import Path
 # Minimal operational state. Other history belongs in its authoritative artifact.
 SECTIONS = ["Layout", "Question", "Hypotheses", "Gates", "Deferred", "Last session"]
 REQUIRED_SECTIONS = list(SECTIONS)
+LEGACY_SECTIONS = {"Facts that were once wrong", "Provenance", "Verification", "Open decisions"}
 LAYOUT_KEYS = ["protocol", "decisions", "aggregates", "documents", "notebooks", "references"]
+LAYOUT_ALLOWED = set(LAYOUT_KEYS) | {"floor"}
 PHASES = ["1A", "1B", "2", "3", "4", "5", "6", "7", "8"]
 GATE_STATES = {"reached", "pending", "blocked"}
 HYPOTHESIS_STATES = {"CONFIRMED", "REFUTED", "INCONCLUSIVE", "BLOCKED", "NOT_VERIFIED", "—", "-"}
@@ -307,10 +309,25 @@ def check_map(text: str, root: Path) -> tuple[Result, dict[str, list[str]]]:
     for name in REQUIRED_SECTIONS:
         if name not in sections:
             result.fail(f"missing section '## {name}'")
+    unexpected = [s for s in order if s not in SECTIONS and s not in LEGACY_SECTIONS]
+    for name in unexpected:
+        result.fail(f"unexpected section '## {name}'; RESEARCH.map has six canonical sections")
     if present != [s for s in SECTIONS if s in sections]:
         result.fail("sections out of order; order: " + " → ".join(SECTIONS))
 
-    layout = parse_layout(sections.get("Layout", []))
+    layout_lines = sections.get("Layout", [])
+    layout_keys = [
+        match.group(1)
+        for line in layout_lines
+        if (match := re.match(r"^\s*[-*]\s*([a-z]+)\s*:", line))
+    ]
+    for key in sorted(set(layout_keys)):
+        if layout_keys.count(key) > 1:
+            result.fail(f"Layout: duplicate key '{key}'")
+
+    layout = parse_layout(layout_lines)
+    for key in sorted(set(layout) - LAYOUT_ALLOWED):
+        result.fail(f"Layout: unknown key '{key}'")
     for key in LAYOUT_KEYS:
         if key not in layout:
             result.fail(f"Layout: missing key '{key}'")

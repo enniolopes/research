@@ -1,6 +1,6 @@
 # RESEARCH.map schema
 
-`RESEARCH.map` is a small operational index. It has exactly six canonical sections, in this order:
+`RESEARCH.map` is a small operational index. New maps have exactly six canonical sections, in this order:
 
 1. `Layout`
 2. `Question`
@@ -10,6 +10,8 @@
 6. `Last session`
 
 Historical corrections belong in Git/decisions, data provenance with the data, verification commands in project documentation, and unresolved methodological choices in the decision log or a blocked gate.
+
+For pre-0.10 compatibility, the validator tolerates the former optional sections `Facts that were once wrong`, `Provenance`, `Verification` and `Open decisions`; they are not written by new maps and should be folded into their authoritative owners when the map is next edited. Other extra `##` sections fail validation.
 
 ## Layout
 
