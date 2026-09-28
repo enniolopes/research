@@ -131,13 +131,16 @@ class EpistemicTests(unittest.TestCase):
 
     def test_exploratory_history_does_not_depend_on_current_plan(self):
         (self.root / "aggregates" / "rx.txt").write_text("x\n", encoding="utf-8")
+        git(self.root, "add", "aggregates/rx.txt")
+        git(self.root, "commit", "-m", "exploratory output")
+        exploratory_commit = git(self.root, "rev-parse", "HEAD")
         receipt = {
             "id": "RUN-9",
             "mode": "exploratory",
             "hypothesis": "H9",
             "estimand": "E9",
             "test": "T9",
-            "commit": self.freeze,
+            "commit": exploratory_commit,
             "inputs": [{"id": "DATA1", "path": "data.csv", "role": "discovery"}],
             "outputs": [{"result": "R9", "artifact": "aggregates/rx.txt"}],
         }
