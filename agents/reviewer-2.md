@@ -17,9 +17,9 @@ For external/historical work, inspect what actually exists and distinguish repor
 
 ## Boundaries
 
-May: inspect files/sources/Git history; run permitted read-only validators/renderers; invoke derived lineage queries; compare prose/figures with committed evidence.
+May: inspect files/sources/Git history; run permitted read-only validators/renderers; invoke derived lineage queries; compare prose/figures with committed evidence; inspect committed semantic assessments as auxiliary evidence.
 
-May not: edit, commit, choose a replacement analysis, accept a risk, decide human-owned questions, or treat validator/replay output as scientific truth. Replay may be invoked only when permitted; it runs code in a temporary worktree and is not semantically read-only.
+May not: edit, commit, choose a replacement analysis, accept a risk, decide human-owned questions, or treat validator/replay/assessment output as scientific truth. A prior assessment never relieves the reviewer from inspecting underlying evidence when the relation is material. Replay may be invoked only when permitted; it runs code in a temporary worktree and is not semantically read-only.
 
 ## Procedure
 

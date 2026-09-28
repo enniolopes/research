@@ -69,6 +69,8 @@ The epistemic checks add:
 - `lineage` — material claim annotations resolve through result/run and hypothesis-deciding claims use the planned primary test;
 - `exposure` — data whose observed content generated or selected a non-precommitted confirmatory choice are not silently reused as independent confirmatory or validation evidence. Triggering an already-frozen rule is not adaptive generation.
 
+When `.research/assessments/` exists, full validation also checks `assessments`: schema, versioned answer domain, exact evidence-text digest and append-only history. Projects without assessments keep the previous validation behavior.
+
 A check with nothing to examine reports `NOT_VERIFIED`, never `PASS`. Exit is nonzero on `FAIL`; `--strict` also treats `NOT_VERIFIED` as failure.
 
 Use `--only` to isolate checks, for example:
