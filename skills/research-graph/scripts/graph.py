@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build/query a disposable epistemic graph from research artifacts. Standard library only."""
+"""Derive/query disposable research lineage from authoritative artifacts. Standard library only."""
 
 from __future__ import annotations
 
@@ -296,7 +296,7 @@ def main(argv: list[str] | None = None) -> int:
         lines = walk(dependency_graph(graph), node, reverse=True)
     elif args.command == "changed":
         lines = walk(dependency_graph(graph), node, reverse=False)
-        print("Potential consequences only; inspect each inference and surviving support. "
+        print("Potential consequences only; inspect each dependency and surviving support. "
               "Current recorded relations may omit dependencies; verify historical run plans separately.")
     print("\n".join(lines) if lines else f"{node}: no matching relations")
     return 0

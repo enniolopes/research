@@ -17,7 +17,7 @@
 }
 ```
 
-`mode` is `confirmatory | exploratory`. Input role is `discovery | confirmatory | validation`.
+`mode` for new runs is `confirmatory | exploratory`. Input role is `discovery | confirmatory | validation`. The validator also accepts historical `mode: validation` receipts and legacy `analysis_role` fields on non-confirmatory receipts so append-only history never requires rewriting; those fields confer no confirmatory authority.
 
 Exploratory runs omit `analysis_role`; their receipt records what happened without certifying it against the current confirmatory plan.
 
@@ -46,7 +46,7 @@ Operational order:
 5. commit only declared output artifacts as `commit`;
 6. write and commit the receipt referencing both hashes.
 
-The validator requires scientific freezes ≤ execution freeze < run commit, inputs present at execution freeze, and only declared outputs changed across the execution boundary. Each declared output must cross that boundary.
+The validator requires scientific freezes ≤ execution freeze < run commit, inputs present at execution freeze, no confirmatory input/output path overlap, and only declared outputs changed across the execution boundary. Each declared output must cross that boundary. Artifact drift checks are byte-exact, including binary outputs.
 
 The first committed version of a RUN receipt is authoritative. Corrections get new RUN/R identities.
 

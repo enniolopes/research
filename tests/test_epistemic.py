@@ -6,6 +6,7 @@ import json
 import subprocess
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -95,13 +96,13 @@ class EpistemicTests(unittest.TestCase):
     def test_output_only_execution_boundary_passes(self):
         self.make_confirmatory_receipt()
         plan, _, _ = epistemic.parse_plan(self.root)
-        result, _, _ = epistemic.check_runs(self.root, self.root / "RESEARCH.map", plan)
+        result, _, _ = epistemic.check_runs(self.root, self.root / "RESEARCH.map")
         self.assertEqual(result.status, "PASS", result.lines)
 
     def test_non_output_change_after_execution_freeze_fails(self):
         self.make_confirmatory_receipt(extra_change=True)
         plan, _, _ = epistemic.parse_plan(self.root)
-        result, _, _ = epistemic.check_runs(self.root, self.root / "RESEARCH.map", plan)
+        result, _, _ = epistemic.check_runs(self.root, self.root / "RESEARCH.map")
         self.assertEqual(result.status, "FAIL")
         self.assertTrue(any("non-output path(s) changed" in line for line in result.lines), result.lines)
 
@@ -111,7 +112,7 @@ class EpistemicTests(unittest.TestCase):
         data["registration"] = "rewritten"
         path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
         plan, _, _ = epistemic.parse_plan(self.root)
-        result, _, _ = epistemic.check_runs(self.root, self.root / "RESEARCH.map", plan)
+        result, _, _ = epistemic.check_runs(self.root, self.root / "RESEARCH.map")
         self.assertEqual(result.status, "FAIL")
         self.assertTrue(any("run receipt changed after first commit" in line for line in result.lines), result.lines)
 
@@ -128,6 +129,105 @@ class EpistemicTests(unittest.TestCase):
         }
         result = epistemic.check_exposure(plan, runs)
         self.assertEqual(result.status, "FAIL")
+
+
+    def test_frozen_generated_none_does_not_inherit_current_exposure(self):
+        plan = {"H1": {"generated_from": ["DATA2"]}}
+        runs = {
+            "RUN-1": {
+                "mode": "confirmatory",
+                "hypothesis": "H1",
+                "_frozen_generated_from": [],
+                "_frozen_primary_test": "T1",
+                "inputs": [{"id": "DATA2", "role": "confirmatory"}],
+            }
+        }
+        result = epistemic.check_exposure(plan, runs)
+        self.assertEqual(result.status, "PASS", result.lines)
+
+    def test_binary_result_drift_is_detected_without_text_decoding(self):
+        artifact = self.root / "aggregates" / "rbin.bin"
+        artifact.write_bytes(b"\xff\x00")
+        git(self.root, "add", "aggregates/rbin.bin")
+        git(self.root, "commit", "-m", "binary run output")
+        run_commit = git(self.root, "rev-parse", "HEAD")
+        receipt = {
+            "id": "RUN-2",
+            "mode": "confirmatory",
+            "analysis_role": "primary",
+            "hypothesis": "H1",
+            "estimand": "E1",
+            "test": "T1",
+            "commit": run_commit,
+            "protocol_freeze": self.freeze,
+            "analysis_plan_freeze": self.freeze,
+            "execution_freeze": self.freeze,
+            "registration": "https://example.org/registration",
+            "inputs": [{"id": "DATA1", "path": "data.csv", "role": "confirmatory"}],
+            "outputs": [{"result": "R2", "artifact": "aggregates/rbin.bin"}],
+        }
+        path = self.root / ".research" / "runs" / "RUN-2.json"
+        path.write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
+        git(self.root, "add", str(path.relative_to(self.root)))
+        git(self.root, "commit", "-m", "record binary receipt")
+        artifact.write_bytes(b"\xfe\x00")
+        result, _, _ = epistemic.check_runs(self.root, self.root / "RESEARCH.map")
+        self.assertEqual(result.status, "FAIL")
+        self.assertTrue(any("drifted after run commit" in line for line in result.lines), result.lines)
+
+    def test_confirmatory_input_cannot_also_be_output(self):
+        (self.root / "data.csv").write_text("x\n2\n", encoding="utf-8")
+        git(self.root, "add", "data.csv")
+        git(self.root, "commit", "-m", "mutate input as result")
+        run_commit = git(self.root, "rev-parse", "HEAD")
+        receipt = {
+            "id": "RUN-3",
+            "mode": "confirmatory",
+            "analysis_role": "primary",
+            "hypothesis": "H1",
+            "estimand": "E1",
+            "test": "T1",
+            "commit": run_commit,
+            "protocol_freeze": self.freeze,
+            "analysis_plan_freeze": self.freeze,
+            "execution_freeze": self.freeze,
+            "registration": "https://example.org/registration",
+            "inputs": [{"id": "DATA1", "path": "data.csv", "role": "confirmatory"}],
+            "outputs": [{"result": "R3", "artifact": "data.csv"}],
+        }
+        path = self.root / ".research" / "runs" / "RUN-3.json"
+        path.write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
+        git(self.root, "add", str(path.relative_to(self.root)))
+        git(self.root, "commit", "-m", "record overlapping receipt")
+        result, _, _ = epistemic.check_runs(self.root, self.root / "RESEARCH.map")
+        self.assertEqual(result.status, "FAIL")
+        self.assertTrue(any("input/output path overlap" in line for line in result.lines), result.lines)
+
+    def test_only_plan_does_not_scan_runs_or_lineage(self):
+        with mock.patch.object(epistemic, "check_runs", side_effect=AssertionError("runs should not execute")):
+            results = epistemic.run(self.root / "RESEARCH.map", self.root, {"plan"})
+        self.assertEqual([result.name for result in results], ["plan"])
+
+    def test_legacy_validation_mode_remains_readable(self):
+        (self.root / "aggregates" / "rv.txt").write_text("validation\n", encoding="utf-8")
+        git(self.root, "add", "aggregates/rv.txt")
+        git(self.root, "commit", "-m", "legacy validation output")
+        run_commit = git(self.root, "rev-parse", "HEAD")
+        receipt = {
+            "id": "RUN-8",
+            "mode": "validation",
+            "analysis_role": "diagnostic",
+            "hypothesis": "H8",
+            "estimand": "E8",
+            "test": "T8",
+            "commit": run_commit,
+            "inputs": [{"id": "DATA1", "path": "data.csv", "role": "validation"}],
+            "outputs": [{"result": "R8", "artifact": "aggregates/rv.txt"}],
+        }
+        path = self.root / ".research" / "runs" / "RUN-8.json"
+        path.write_text(json.dumps(receipt) + "\n", encoding="utf-8")
+        result, _, _ = epistemic.check_runs(self.root, self.root / "RESEARCH.map")
+        self.assertNotEqual(result.status, "FAIL", result.lines)
 
     def test_exploratory_history_does_not_depend_on_current_plan(self):
         (self.root / "aggregates" / "rx.txt").write_text("x\n", encoding="utf-8")
@@ -146,7 +246,7 @@ class EpistemicTests(unittest.TestCase):
         }
         path = self.root / ".research" / "runs" / "RUN-9.json"
         path.write_text(json.dumps(receipt) + "\n", encoding="utf-8")
-        result, _, _ = epistemic.check_runs(self.root, self.root / "RESEARCH.map", {})
+        result, _, _ = epistemic.check_runs(self.root, self.root / "RESEARCH.map")
         self.assertNotEqual(result.status, "FAIL", result.lines)
 
 

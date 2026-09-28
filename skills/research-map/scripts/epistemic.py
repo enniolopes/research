@@ -14,7 +14,7 @@ H_HEADING = re.compile(r"^##\s+(H\d+)\s*$", re.M)
 ASSUMPTION_ROW = re.compile(r"^\|\s*(A\d+)\s*\|\s*([^|]+?)\s*\|\s*(K\d+)\s*\|\s*([^|]+?)\s*\|\s*$", re.M)
 CLAIM = re.compile(r"<!--\s*claim:(C\d+)\s+(?:inference:(I\d+)\s+)?result:(R\d+)(?:\s+decides:(H\d+))?\s*-->", re.I)
 COMMIT = re.compile(r"^[0-9a-f]{7,40}$", re.I)
-RUN_MODES = {"confirmatory", "exploratory"}
+RUN_MODES = {"confirmatory", "exploratory", "validation"}  # validation is accepted for historical receipts
 ANALYSIS_ROLES = {"primary", "sensitivity", "specification", "diagnostic"}
 DATA_ROLES = {"discovery", "confirmatory", "validation"}
 
@@ -211,6 +211,15 @@ def show(root: Path, ref: str, path: str) -> str | None:
     return result.stdout if result.returncode == 0 else None
 
 
+def show_bytes(root: Path, ref: str, path: str) -> bytes | None:
+    result = subprocess.run(["git", "show", f"{ref}:{path}"], cwd=root, capture_output=True)
+    return result.stdout if result.returncode == 0 else None
+
+
+def path_exists_at(root: Path, ref: str, path: str) -> bool:
+    return git(root, "cat-file", "-e", f"{ref}:{path}").returncode == 0
+
+
 def first_added_commit(root: Path, path: str) -> str:
     """Return the earliest commit that added this path, or an empty string."""
     result = git(root, "log", "--diff-filter=A", "--format=%H", "--", path)
@@ -246,7 +255,7 @@ def load_runs(root: Path) -> tuple[list[tuple[Path, dict]], list[str]]:
     return runs, errors
 
 
-def check_runs(root: Path, map_path: Path, plan: dict[str, dict]) -> tuple[Result, dict[str, dict], dict[str, dict]]:
+def check_runs(root: Path, map_path: Path) -> tuple[Result, dict[str, dict], dict[str, dict]]:
     result = Result("runs")
     runs, parse_errors = load_runs(root)
     for error in parse_errors:
@@ -279,8 +288,8 @@ def check_runs(root: Path, map_path: Path, plan: dict[str, dict]) -> tuple[Resul
             result.fail(f"{rel}: mode must be one of {sorted(RUN_MODES)}")
         if mode == "confirmatory" and analysis_role not in ANALYSIS_ROLES:
             result.fail(f"{rel}: confirmatory analysis_role must be one of {sorted(ANALYSIS_ROLES)}")
-        elif mode == "exploratory" and analysis_role:
-            result.fail(f"{rel}: exploratory runs omit analysis_role; the run mode already carries that meaning")
+        # Historical exploratory/validation receipts may carry analysis_role under the pre-0.10 schema.
+        # It has no confirmatory authority and is ignored for those modes.
 
         hypothesis = str(data.get("hypothesis", "")).upper()
         estimand = str(data.get("estimand", "")).upper()
@@ -410,6 +419,7 @@ def check_runs(root: Path, map_path: Path, plan: dict[str, dict]) -> tuple[Resul
         if not isinstance(inputs, list):
             result.fail(f"{rel}: inputs must be a list")
             inputs = []
+        input_paths: set[str] = set()
         for item in inputs:
             if not isinstance(item, dict):
                 result.fail(f"{rel}: each input must be an object with id/path/role")
@@ -422,6 +432,7 @@ def check_runs(root: Path, map_path: Path, plan: dict[str, dict]) -> tuple[Resul
             if not data_path:
                 result.fail(f"{rel}: input {data_id or '?'} has no path")
             else:
+                input_paths.add(data_path)
                 resolved_input = repo_path(root, data_path)
                 if resolved_input is None:
                     result.fail(f"{rel}: input {data_id or '?'} path `{data_path}` escapes repository root")
@@ -429,9 +440,9 @@ def check_runs(root: Path, map_path: Path, plan: dict[str, dict]) -> tuple[Resul
                     result.fail(f"{rel}: input {data_id or '?'} path `{data_path}` does not exist")
             if role not in DATA_ROLES:
                 result.fail(f"{rel}: input {data_id or '?'} role must be one of {sorted(DATA_ROLES)}")
-            if temporal_ready and data_path and show(root, commit, data_path) is None:
+            if temporal_ready and data_path and not path_exists_at(root, commit, data_path):
                 result.fail(f"{rel}: input {data_id or '?'} `{data_path}` did not exist at run commit {commit}")
-            if execution_ready and data_path and show(root, execution_freeze, data_path) is None:
+            if execution_ready and data_path and not path_exists_at(root, execution_freeze, data_path):
                 result.fail(f"{rel}: input {data_id or '?'} `{data_path}` did not exist at execution freeze {execution_freeze}")
 
         replay = data.get("replay")
@@ -452,7 +463,7 @@ def check_runs(root: Path, map_path: Path, plan: dict[str, dict]) -> tuple[Resul
                     for environment_path in environment:
                         if repo_path(root, environment_path) is None:
                             result.fail(f"{rel}: replay environment `{environment_path}` escapes repository root")
-                        elif show(root, execution_freeze, environment_path) is None:
+                        elif not path_exists_at(root, execution_freeze, environment_path):
                             result.fail(f"{rel}: replay environment `{environment_path}` did not exist at execution freeze {execution_freeze}")
 
         outputs = data.get("outputs", [])
@@ -480,12 +491,11 @@ def check_runs(root: Path, map_path: Path, plan: dict[str, dict]) -> tuple[Resul
             elif current_artifact is None or not current_artifact.is_file():
                 result.fail(f"{rel}: {result_id} artifact `{artifact or 'missing'}` does not exist")
             if temporal_ready and artifact:
-                frozen_artifact = show(root, commit, artifact)
+                frozen_artifact = show_bytes(root, commit, artifact)
                 if frozen_artifact is None:
                     result.fail(f"{rel}: {result_id} artifact `{artifact}` did not exist at run commit {commit}")
                 elif current_artifact is not None and current_artifact.is_file():
-                    current_text = current_artifact.read_text(encoding="utf-8", errors="replace")
-                    if current_text != frozen_artifact:
+                    if current_artifact.read_bytes() != frozen_artifact:
                         result.fail(f"{rel}: {result_id} artifact `{artifact}` drifted after run commit {commit}; create a new result/run id or restore the committed result")
             result_index[result_id] = {
                 "run": run_id,
@@ -498,6 +508,14 @@ def check_runs(root: Path, map_path: Path, plan: dict[str, dict]) -> tuple[Resul
                 "frozen_primary_test": frozen_primary,
                 "analysis_plan_freeze": plan_freeze,
             }
+
+        if mode == "confirmatory":
+            overlap_paths = input_paths & output_artifacts
+            if overlap_paths:
+                result.fail(
+                    f"{rel}: confirmatory input/output path overlap: {', '.join(sorted(overlap_paths))}; "
+                    "a frozen input cannot also be a mutable result artifact"
+                )
 
         if execution_ready:
             changed = changed_paths(root, execution_freeze, commit)
@@ -529,7 +547,9 @@ def iter_documents(root: Path, map_path: Path) -> list[Path]:
     suffixes = {".md", ".qmd", ".rmd", ".tex", ".txt"}
     files: list[Path] = []
     for item in layout.get("documents", []):
-        path = root / item
+        path = repo_path(root, item)
+        if path is None:
+            continue
         if path.is_file() and path.suffix.lower() in suffixes:
             files.append(path)
         elif path.is_dir():
@@ -537,7 +557,7 @@ def iter_documents(root: Path, map_path: Path) -> list[Path]:
     return files
 
 
-def check_lineage(root: Path, map_path: Path, plan: dict[str, dict], result_index: dict[str, dict]) -> Result:
+def check_lineage(root: Path, map_path: Path, result_index: dict[str, dict]) -> Result:
     result = Result("lineage")
     annotations = []
     seen_claims: set[str] = set()
@@ -580,12 +600,14 @@ def check_exposure(plan: dict[str, dict], runs: dict[str, dict]) -> Result:
         if str(run.get("mode", "")).lower() != "confirmatory":
             continue
         hypothesis = str(run.get("hypothesis", "")).upper()
-        generated = set(run.get("_frozen_generated_from", []))
-        if not generated and hypothesis in plan:
-            # Best-effort fallback when temporal plan recovery was unavailable. The runs check
+        if run.get("_frozen_primary_test"):
+            # A successfully recovered frozen plan is authoritative even when Generated from: none.
+            generated = set(run.get("_frozen_generated_from", []))
+        else:
+            # Best-effort fallback only when temporal plan recovery was unavailable. The runs check
             # already marks temporal provenance NOT_VERIFIED in that case.
-            generated = set(plan[hypothesis].get("generated_from", []))
-            if generated and not run.get("_frozen_primary_test"):
+            generated = set(plan.get(hypothesis, {}).get("generated_from", []))
+            if generated:
                 unverifiable += 1
         if not generated:
             continue
@@ -611,12 +633,25 @@ def check_exposure(plan: dict[str, dict], runs: dict[str, dict]) -> Result:
 
 
 def run(map_path: Path, root: Path, only: set[str] | None = None) -> list[Result]:
-    plan_result, plan, _ = check_plan(root)
-    run_result, runs, result_index = check_runs(root, map_path, plan)
-    checks = {
-        "plan": plan_result,
-        "runs": run_result,
-        "lineage": check_lineage(root, map_path, plan, result_index),
-        "exposure": check_exposure(plan, runs),
-    }
-    return [checks[name] for name in ("plan", "runs", "lineage", "exposure") if only is None or name in only]
+    requested = {"plan", "runs", "lineage", "exposure"} if only is None else set(only)
+    results: dict[str, Result] = {}
+
+    plan: dict[str, dict] = {}
+    if "plan" in requested or "exposure" in requested:
+        plan_result, plan, _ = check_plan(root)
+        if "plan" in requested:
+            results["plan"] = plan_result
+
+    runs: dict[str, dict] = {}
+    result_index: dict[str, dict] = {}
+    if requested & {"runs", "lineage", "exposure"}:
+        run_result, runs, result_index = check_runs(root, map_path)
+        if "runs" in requested:
+            results["runs"] = run_result
+
+    if "lineage" in requested:
+        results["lineage"] = check_lineage(root, map_path, result_index)
+    if "exposure" in requested:
+        results["exposure"] = check_exposure(plan, runs)
+
+    return [results[name] for name in ("plan", "runs", "lineage", "exposure") if name in results]
