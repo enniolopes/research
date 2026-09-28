@@ -19,7 +19,7 @@ This is the public entry point. The user talks to this skill; internal skills an
 1. **Evidence outranks narrative.** What was read or executed against an identified target outranks memory, confidence and author explanation. Own computed results require executed code; externally reported results require inspected source attribution and must not be presented as reproduced.
 2. **Commitment precedes exposure.** A choice that can be influenced by a result must be recorded and frozen before exposure to that result.
 3. **Discovery is not confirmation.** Evidence that materially generated or selected a hypothesis does not independently confirm it.
-4. **Claims require lineage.** Every material scientific claim must be traceable through an explicit inference to identified result/source evidence and the design that permits the inference.
+4. **Claims require lineage.** Every material scientific claim must be traceable to identified result/source evidence and the design/checks that permit its wording.
 5. **Material claims face an adversary.** The process that built a material claim is insufficient to release it; independent adversarial review is required.
 
 These laws generate the detailed rules. Do not add a second prose rule when an important failure can instead be represented as an artifact, state, relation, temporal fact or invalid transition.
@@ -133,20 +133,20 @@ A material claim is one that reports/decides a result, comparison, no-effect/equ
 After the CLAIM preflight, annotate the source near the claim:
 
 ```text
-<!-- claim:C1 inference:I1 result:R1 -->
+<!-- claim:C1 result:R1 -->
 ```
 
 If it decides a hypothesis:
 
 ```text
-<!-- claim:C2 inference:I2 result:R2 decides:H1 -->
+<!-- claim:C2 result:R2 decides:H1 -->
 ```
 
-`research-graph` derives `C → I → R → RUN → T → H/E` lineage from authoritative artifacts. `I<n>` is the public warrant from result + design/checks to wording. Mechanical validation can prove that the chain exists and uses the planned primary test; reviewer judgement decides whether the inference is scientifically adequate.
+`research-graph` derives `C → R → RUN → T → H/E` lineage from authoritative artifacts. Mechanical validation can prove that the chain exists and uses the planned primary test; reviewer judgement decides whether result + design + checks warrant the wording. Legacy annotations with `inference:I<n>` remain readable but no longer create a separate node.
 
 ## Sources
 
-A source has operational states: `DISCOVERED → RETRIEVED → READ → USED_FOR_CLAIM → REVIEWED`. DOI/landing-page resolution establishes identity/reachability, not semantic entailment. A methodological rule is not promoted into runtime policy from model memory or an indexed summary; the relevant primary source must have been read.
+A source may guide search when merely discovered. It supports a scientific or methodological proposition only after the relevant content has been retrieved and read. DOI/landing-page resolution establishes identity/reachability, not semantic entailment. Do not create a separate source-state ledger unless a concrete project needs one.
 
 ## Terminal states
 

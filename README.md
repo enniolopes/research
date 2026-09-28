@@ -87,7 +87,7 @@ The system handles the gates and preflights internally. If valid work can procee
 | `.research/reviews/` | Independent review evidence |
 | manuscript | Scientific communication |
 
-The derived research graph is rebuildable and is not a second source of truth.
+Lineage queries are derived in memory from authoritative artifacts; no graph cache is a source of truth.
 
 Construct and mechanism claims explicitly connect measures to interpretations and examine discriminating evidence against plausible alternatives. When evidence changes, revision preserves unaffected findings and reassesses surviving support. Third-party reviews distinguish reported, reconstructed and reproduced findings without demanding native plugin artifacts. Graph queries identify candidate dependencies; they do not decide scientific validity.
 

@@ -11,13 +11,11 @@ from collections import deque
 from pathlib import Path
 
 CLAIM = re.compile(
-    r"<!--\s*claim:(C\d+)\s+inference:(I\d+)\s+result:(R\d+)(?:\s+decides:(H\d+))?\s*-->",
+    r"<!--\s*claim:(C\d+)\s+(?:inference:(I\d+)\s+)?result:(R\d+)(?:\s+decides:(H\d+))?\s*-->",
     re.I,
 )
-LABEL = re.compile(r"^\s*([^:]+):\s*(.*?)\s*$", re.M)
 H_HEADING = re.compile(r"^##\s+(H\d+)\s*$", re.M)
 ASSUMPTION_ROW = re.compile(r"^\|\s*(A\d+)\s*\|.*?\|\s*(K\d+)\s*\|\s*([^|]+?)\s*\|\s*$", re.M)
-ID_TOKEN = re.compile(r"\b(?:H|E|T|A|K|R|I|C|SRC|DATA)\d+\b|\bRUN-\d+\b|\bD-\d+\b", re.I)
 
 
 def add_node(nodes: dict[str, dict], node_id: str, kind: str, **meta) -> None:
@@ -29,6 +27,19 @@ def add_node(nodes: dict[str, dict], node_id: str, kind: str, **meta) -> None:
 
 def add_edge(edges: set[tuple[str, str, str]], source: str, relation: str, target: str) -> None:
     edges.add((source, relation, target))
+
+
+def repo_path(root: Path, raw: str) -> Path | None:
+    path = Path(raw)
+    if path.is_absolute():
+        return None
+    root = root.resolve()
+    resolved = (root / path).resolve()
+    try:
+        resolved.relative_to(root)
+    except ValueError:
+        return None
+    return resolved
 
 
 def layout_from_map(path: Path) -> dict[str, list[str]]:
@@ -166,7 +177,9 @@ def document_files(root: Path, layout: dict[str, list[str]]) -> list[Path]:
     suffixes = {".md", ".qmd", ".rmd", ".tex", ".txt"}
     files: list[Path] = []
     for item in layout.get("documents", []):
-        path = root / item
+        path = repo_path(root, item)
+        if path is None:
+            continue
         if path.is_file() and path.suffix.lower() in suffixes:
             files.append(path)
         elif path.is_dir():
@@ -178,27 +191,11 @@ def parse_claims(root: Path, layout: dict[str, list[str]], nodes: dict[str, dict
     for path in document_files(root, layout):
         text = path.read_text(encoding="utf-8", errors="replace")
         for match in CLAIM.finditer(text):
-            claim, inference, result, decides = [x.upper() if x else "" for x in match.groups()]
+            claim, _legacy_inference, result, decides = [x.upper() if x else "" for x in match.groups()]
             rel = str(path.relative_to(root))
             add_node(nodes, claim, "C", artifact=rel, decides=decides or None)
-            add_node(nodes, inference, "I", artifact=rel)
             add_node(nodes, result, "R")
-            add_edge(edges, result, "supports", inference)
-            add_edge(edges, inference, "supports", claim)
-            # H/E are reached through the executed test, not derived from its
-            # interpretation. The latter creates a false circular warrant.
-
-
-def parse_sources(root: Path, layout: dict[str, list[str]], nodes: dict[str, dict]) -> None:
-    for item in layout.get("references", []):
-        path = root / item
-        if not path.is_file() or path.suffix.lower() != ".bib":
-            continue
-        text = path.read_text(encoding="utf-8", errors="replace")
-        for match in re.finditer(r"(?m)^@\w+\s*\{\s*([^,\s]+)", text):
-            key = match.group(1)
-            stable = "SRC" + str(len([n for n in nodes if n.startswith("SRC")]) + 1)
-            add_node(nodes, stable, "SRC", key=key, artifact=str(path.relative_to(root)))
+            add_edge(edges, result, "supports", claim)
 
 
 def build(map_path: Path) -> dict:
@@ -210,9 +207,8 @@ def build(map_path: Path) -> dict:
     parse_plan(root, nodes, edges)
     _, result_index = parse_runs(root, nodes, edges)
     parse_claims(root, layout, nodes, edges, result_index)
-    parse_sources(root, layout, nodes)
     return {
-        "version": 1,
+        "version": 2,
         "nodes": [nodes[key] for key in sorted(nodes)],
         "edges": [
             {"from": source, "relation": relation, "to": target}
@@ -220,20 +216,6 @@ def build(map_path: Path) -> dict:
         ],
     }
 
-
-def graph_path(map_path: Path) -> Path:
-    return map_path.resolve().parent / ".research" / "graph.json"
-
-
-def save_graph(map_path: Path, graph: dict) -> Path:
-    path = graph_path(map_path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(graph, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    return path
-
-
-def load_or_build(map_path: Path) -> dict:
-    return build(map_path)
 
 
 def adjacency(graph: dict, reverse: bool = False, relations: set[str] | None = None) -> dict[str, list[tuple[str, str]]]:
@@ -258,7 +240,7 @@ def dependency_graph(graph: dict) -> dict:
     propagate through it or through mere co-occurrence/source bibliography.
     This is navigation over recorded artifacts, never truth propagation.
     """
-    forward = {"supports", "challenges", "produces", "executed_as"}
+    forward = {"supports", "produces", "executed_as"}
     inverse = {
         "uses": "used_by",
         "requires": "required_by",
@@ -266,7 +248,6 @@ def dependency_graph(graph: dict) -> dict:
         "generated_from": "generated",
         "tests": "tested_by",
         "estimates": "estimated_by",
-        "derived_from": "basis_for",
     }
     edges = []
     for edge in graph.get("edges", []):
@@ -297,8 +278,8 @@ def walk(graph: dict, start: str, reverse: bool, relations: set[str] | None = No
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Build and query the derived research epistemic graph.")
-    parser.add_argument("command", choices=["build", "trace", "argument", "why", "changed"])
+    parser = argparse.ArgumentParser(description="Derive and query research lineage from authoritative artifacts.")
+    parser.add_argument("command", choices=["build", "trace", "why", "changed"])
     parser.add_argument("node", nargs="?", help="node id for a query")
     parser.add_argument("map", nargs="?", default="RESEARCH.map")
     args = parser.parse_args(argv)
@@ -309,11 +290,10 @@ def main(argv: list[str] | None = None) -> int:
     if not map_path.is_file():
         print(f"research-graph: {map_path} not found")
         return 1
-    graph = load_or_build(map_path)
+    graph = build(map_path)
 
     if args.command == "build":
-        path = save_graph(map_path, graph)
-        print(f"research-graph: {len(graph['nodes'])} nodes, {len(graph['edges'])} edges -> {path}")
+        print(f"research-graph: {len(graph['nodes'])} nodes, {len(graph['edges'])} edges (derived in memory; no cache written)")
         return 0
 
     if not args.node:
@@ -330,10 +310,6 @@ def main(argv: list[str] | None = None) -> int:
         lines = walk(dependency_graph(graph), node, reverse=False)
         print("Potential consequences only; inspect each inference and surviving support. "
               "Current recorded relations may omit dependencies; verify historical run plans separately.")
-    else:
-        incoming = walk(graph, node, reverse=True, relations={"supports", "challenges"}, max_depth=2)
-        outgoing = walk(graph, node, reverse=False, relations={"supports", "challenges"}, max_depth=2)
-        lines = incoming + outgoing
     print("\n".join(lines) if lines else f"{node}: no matching relations")
     return 0
 

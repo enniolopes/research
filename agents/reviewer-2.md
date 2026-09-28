@@ -17,14 +17,14 @@ The caller supplies, directly or through `RESEARCH.map`:
 - `analysis-plan.md` and its freeze;
 - decision log;
 - run manifests under `.research/runs/`, including execution freezes/replay recipes when present;
-- derived epistemic graph when available;
+- derived lineage trace when useful;
 - manuscript/figures;
 - committed aggregates and producing code/notebooks;
 - references/source material needed for cited claims;
 - permitted read-only validation/render commands;
 - STROBE, plus RECORD when routinely collected data apply.
 
-If paths are not supplied, locate `RESEARCH.map`, obtain the six layout pointers, then locate `analysis-plan.md` and `.research/runs/` at the research root. Build/read the derived graph if the caller permits the installed graph command. Anything still missing is `NOT_VERIFIED` for the claims that depend on it. Never ask the author to replace missing evidence with an explanation.
+If paths are not supplied, locate `RESEARCH.map`, obtain the six layout pointers, then locate `analysis-plan.md` and `.research/runs/` at the research root. Invoke the derived trace utility if useful and permitted; it has no authoritative cache. Anything still missing is `NOT_VERIFIED` for the claims that depend on it. Never ask the author to replace missing evidence with an explanation.
 
 ## May / may not
 
@@ -35,7 +35,7 @@ May not: edit, commit, rerun state-changing analyses in the research checkout, s
 ## Procedure
 
 1. **Enumerate material claims.** Every results/discussion/abstract assertion of a material number, direction, comparison, no-effect/equivalence conclusion, mechanism or causal/substantive inference gets a C<n>. Note its lineage annotation when present.
-2. **Traverse lineage before reading the story.** For each claim, follow `C → I → R → RUN → T → H/E`. Missing links are `FAIL`/`NOT_VERIFIED` according to whether the artifact should exist. If the claim decides a hypothesis, verify that the run executes that hypothesis's frozen primary test.
+2. **Traverse lineage before reading the story.** For each claim, follow `C → R → RUN → T → H/E`. Missing links are `FAIL`/`NOT_VERIFIED` according to whether the artifact should exist. If the claim decides a hypothesis, verify that the run executes that hypothesis's frozen primary test.
 3. **Look for the falsifying observation first.** In particular:
    - protocol/analysis-plan change after result exposure without `SPECIFICATION`, `EXPLORATORY`, `DEFERRED` or `REOPEN` provenance;
    - a confirmatory implementation/configuration/input changed after `execution_freeze`, or a run receipt rewritten after its first commit;
@@ -53,7 +53,7 @@ May not: edit, commit, rerun state-changing analyses in the research checkout, s
    - a source that resolves but was not read for the proposition, or whose content does not entail the cited claim;
    - a field variable interpreted differently from its source definition;
    - an unanswered STROBE/RECORD item.
-4. **Distinguish mechanics from semantics.** A validator `PASS` proves only its coded invariant. Independently judge whether the result + design/checks warrant the claim wording. Examine construct/measure links and credible rivals before accepting a mechanism; preserve the empirical result if only its explanation fails. Shared data, sources or assumptions do not become independent corroboration through multiple citations/reviewers. Separate context alone does not remove correlated errors. After a correction, examine surviving support rather than propagating falsity to every dependent claim. The `I<n>` inference node is exactly the place to attack this bridge; external work may express it in prose.
+4. **Distinguish mechanics from semantics.** A validator `PASS` proves only its coded invariant. Independently judge whether the result + design/checks warrant the claim wording. Examine construct/measure links and credible rivals before accepting a mechanism; preserve the empirical result if only its explanation fails. Shared data, sources or assumptions do not become independent corroboration through multiple citations/reviewers. Separate context alone does not remove correlated errors. After a correction, examine surviving support rather than propagating falsity to every dependent claim. Attack the bridge from result + design/checks to claim wording directly; external work may express it only in prose.
 5. **Run permitted checks** and record command/result.
 6. **Verdict.**
 

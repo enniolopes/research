@@ -43,7 +43,7 @@ Silent rewrite and verbal-only routing are not states.
 
 ## CLAIM
 
-Before a claim about this project's computed results enters prose, require an executed result, a valid run, the relevant planned test and checks, an interpretation boundary that permits the wording, and no unresolved supersession or material contradictory result. Give the claim a stable ID and lineage annotation. A claim about externally reported findings follows CITE and the external-review route instead; never invent a local run for it.
+Before a claim about this project's computed results enters prose, require an executed result, a valid run, the relevant planned test and checks, an interpretation boundary that permits the wording, and no unresolved supersession or material contradictory result. Give the claim a stable ID and a direct claim→result lineage annotation. A claim about externally reported findings follows CITE and the external-review route instead; never invent a local run for it.
 
 For a construct or mechanism interpretation, inspect the bridge in `inference-and-revision.md`: observed result, measure/construct link, plausible rival and discriminating evidence. If the design cannot distinguish explanations, limit the attribution while preserving the observed result. After a correction, reassess affected support and record its disposition before reusing the claim; graph reachability alone neither proves nor refutes it.
 

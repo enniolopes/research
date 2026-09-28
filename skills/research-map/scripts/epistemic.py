@@ -12,7 +12,7 @@ from pathlib import Path
 EMPTY = {"", "-", "—", "none", "n/a", "na", "tbd", "?"}
 H_HEADING = re.compile(r"^##\s+(H\d+)\s*$", re.M)
 ASSUMPTION_ROW = re.compile(r"^\|\s*(A\d+)\s*\|\s*([^|]+?)\s*\|\s*(K\d+)\s*\|\s*([^|]+?)\s*\|\s*$", re.M)
-CLAIM = re.compile(r"<!--\s*claim:(C\d+)\s+inference:(I\d+)\s+result:(R\d+)(?:\s+decides:(H\d+))?\s*-->", re.I)
+CLAIM = re.compile(r"<!--\s*claim:(C\d+)\s+(?:inference:(I\d+)\s+)?result:(R\d+)(?:\s+decides:(H\d+))?\s*-->", re.I)
 COMMIT = re.compile(r"^[0-9a-f]{7,40}$", re.I)
 RUN_MODES = {"confirmatory", "exploratory", "validation"}
 ANALYSIS_ROLES = {"primary", "sensitivity", "specification", "diagnostic"}
@@ -539,19 +539,15 @@ def check_lineage(root: Path, map_path: Path, plan: dict[str, dict], result_inde
     result = Result("lineage")
     annotations = []
     seen_claims: set[str] = set()
-    seen_inferences: set[str] = set()
     for path in iter_documents(root, map_path):
         text = path.read_text(encoding="utf-8", errors="replace")
         for match in CLAIM.finditer(text):
-            claim, inference, result_id, decides = [value.upper() if value else "" for value in match.groups()]
+            claim, _legacy_inference, result_id, decides = [value.upper() if value else "" for value in match.groups()]
             label = f"{path.relative_to(root)}:{claim}"
-            annotations.append((label, claim, inference, result_id, decides))
+            annotations.append((label, claim, result_id, decides))
             if claim in seen_claims:
                 result.fail(f"{label}: duplicate claim id {claim}")
-            if inference in seen_inferences:
-                result.fail(f"{label}: duplicate inference id {inference}")
             seen_claims.add(claim)
-            seen_inferences.add(inference)
             lineage = result_index.get(result_id)
             if lineage is None:
                 result.fail(f"{label}: result {result_id} has no run manifest lineage")
