@@ -92,6 +92,30 @@ Registration: none
         result, _ = validate.check_map(self.map_text(gates, "../protocol.md"), self.root)
         self.assertTrue(any("escapes repository root" in line for line in result.lines), result.lines)
 
+    def test_external_problem_basis_does_not_require_local_aggregate(self):
+        (self.root / "problem-brief.md").write_text(
+            "Construct: service deficit\n"
+            "Population: target units in 2026\n"
+            "Measure: externally reported rate\n"
+            "Reference: threshold fixed in D-1\n"
+            "Basis: external — https://example.org/source\n"
+            "Magnitude: materially above the fixed reference\n"
+            "Falsification: checked alternative denominator and trend\n"
+            "Verdict: SHOWN — premise established by inspected external evidence\n",
+            encoding="utf-8",
+        )
+        gates = [
+            "1A Problem — formulate", "1B Problem — establish", "2 Literature", "3 Protocol",
+            "4 Data", "5 Analysis", "6 Writing", "7 Review", "8 Publication",
+        ]
+        text = self.map_text(gates).replace(
+            "Problem: PENDING",
+            "Problem: SHOWN → `problem-brief.md`",
+        )
+        result, layout = validate.check_map(text, self.root)
+        self.assertEqual(result.status, "PASS", result.lines)
+        self.assertNotIn("_brief", layout)
+
     def test_disclosure_checks_first_column_too(self):
         (self.root / "documents" / "table.csv").write_text("3,label\n", encoding="utf-8")
         layout = {"documents": ["documents/"], "floor": ["5"]}

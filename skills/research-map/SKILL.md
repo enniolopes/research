@@ -1,6 +1,6 @@
 ---
 name: research-map
-description: Operational memory and mechanical validation across sessions for one research repository. Keeps a small RESEARCH.map pointing to authoritative artifacts, resumes state before work, updates on observable state changes, and composes legacy integrity checks with research 0.10 plan/run/lineage/exposure checks. Normally invoked internally by scientific-method; direct modes remain available for debugging and power users.
+description: Operational memory and mechanical validation across sessions for one research repository. Keeps a small RESEARCH.map pointing to authoritative artifacts, resumes state before work, updates on observable state changes, and composes structural and epistemic integrity checks for research 0.10. Normally invoked internally by scientific-method; direct modes remain available for debugging and power users.
 when_to_use: Use internally at the start of an existing research session, after gate/hypothesis/registration/corrected-number changes, and before commits or release. Direct triggers include resume, status, validate, update the map, or initialize an existing research.
 license: CC-BY-NC-4.0
 metadata:
@@ -53,7 +53,7 @@ Run the composed 0.10 validator:
 python3 "${CLAUDE_SKILL_DIR}/scripts/validate_all.py" RESEARCH.map --offline
 ```
 
-Legacy checks remain unchanged:
+Structural checks:
 
 - `map` — minimal schema, pointers, distinct 1A/1B/2–8 gates, problem-before-protocol and state integrity;
 - `numbers` — document and locally computed problem-brief numbers are present in committed aggregates at quoted precision (presence, not provenance);

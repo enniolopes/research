@@ -40,11 +40,9 @@ from pathlib import Path
 SECTIONS = ["Layout", "Question", "Hypotheses", "Gates", "Deferred", "Last session"]
 REQUIRED_SECTIONS = list(SECTIONS)
 LAYOUT_KEYS = ["protocol", "decisions", "aggregates", "documents", "notebooks", "references"]
-LAYOUT_OPTIONAL = {"floor"}  # minimum cell size for anything under `documents`; an integer
 PHASES = ["1A", "1B", "2", "3", "4", "5", "6", "7", "8"]
 GATE_STATES = {"reached", "pending", "blocked"}
 HYPOTHESIS_STATES = {"CONFIRMED", "REFUTED", "INCONCLUSIVE", "BLOCKED", "NOT_VERIFIED", "—", "-"}
-OPEN_HYPOTHESES = {"—", "-"}
 # `<!-- rm:ignore: <reason> -->` exempts a line from the numbers check; the reason is required.
 IGNORE_MARK = re.compile(r"<!--\s*rm:ignore(?::\s*(\S[^>]*?))?\s*-->")
 DOC_SUFFIXES = {".md", ".qmd", ".rmd", ".tex", ".txt"}
@@ -77,7 +75,6 @@ REGISTRATION = re.compile(r"^\s*(?:[-*]\s*)?\**Registration\**\s*:\s*(\S.*)$", r
 PROBLEM_FIELDS = ["Claim", "Unit of analysis", "Estimand", "Refutation", "Objection", "Who cares", "Non-goals"]
 # Gate 1B: the Question section carries `Problem: <state> → `<brief file[#anchor]>``; the brief
 # (reference/problem-brief.md) carries these fields and a Verdict equal to the map's state.
-PROBLEM_STATES = {"PENDING", "SHOWN", "NOT_SHOWN", "INCONCLUSIVE"}
 PROBLEM_LINE = re.compile(r"^\s*(?:[-*]\s*)?\**Problem\**\s*:\**\s*(PENDING|SHOWN|NOT_SHOWN|INCONCLUSIVE)\b(.*)$", re.M)
 BRIEF_FIELDS = ["Construct", "Population", "Measure", "Reference", "Basis", "Magnitude", "Falsification", "Verdict"]
 VERDICT = re.compile(r"^\s*(?:[-*]\s*)?(?:★\s*)?\**Verdict\**\s*:\**\s*(SHOWN|NOT_SHOWN|INCONCLUSIVE)\b", re.I | re.M)
@@ -329,7 +326,7 @@ def check_map(text: str, root: Path) -> tuple[Result, dict[str, list[str]]]:
 
     pointer_count = 0
     for name, lines in sections.items():
-        if name in {"Layout", "Verification"}:
+        if name == "Layout":
             continue
         for pointer in pointers_in(lines):
             pointer_count += 1

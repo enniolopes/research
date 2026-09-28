@@ -69,11 +69,10 @@ def field(body: str, name: str) -> str:
     return m.group(1).strip() if m else ""
 
 
-def parse_plan(root: Path, nodes: dict[str, dict], edges: set[tuple[str, str, str]]) -> dict[str, dict]:
+def parse_plan(root: Path, nodes: dict[str, dict], edges: set[tuple[str, str, str]]) -> None:
     path = root / "analysis-plan.md"
-    index: dict[str, dict] = {}
     if not path.is_file():
-        return index
+        return
     text = path.read_text(encoding="utf-8", errors="replace")
     for hypothesis, body in block_sections(text):
         estimand = field(body, "Estimand").upper()
@@ -110,22 +109,13 @@ def parse_plan(root: Path, nodes: dict[str, dict], edges: set[tuple[str, str, st
                 fallback_id = fallback.group(1).upper()
                 add_node(nodes, fallback_id, "T", artifact="analysis-plan.md")
                 add_edge(edges, test, "fallback_to", fallback_id)
-        index[hypothesis] = {
-            "estimand": estimand,
-            "test": test,
-            "mode": mode,
-            "generated_from": generated_ids,
-            "assumptions": assumptions,
-        }
-    return index
 
 
-def parse_runs(root: Path, nodes: dict[str, dict], edges: set[tuple[str, str, str]]) -> tuple[dict[str, dict], dict[str, dict]]:
-    run_index: dict[str, dict] = {}
-    result_index: dict[str, dict] = {}
+
+def parse_runs(root: Path, nodes: dict[str, dict], edges: set[tuple[str, str, str]]) -> None:
     run_dir = root / ".research" / "runs"
     if not run_dir.is_dir():
-        return run_index, result_index
+        return
     for path in sorted(run_dir.glob("*.json")):
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
@@ -168,9 +158,7 @@ def parse_runs(root: Path, nodes: dict[str, dict], edges: set[tuple[str, str, st
                 continue
             add_node(nodes, result, "R", artifact=artifact)
             add_edge(edges, run_id, "produces", result)
-            result_index[result] = {"run": run_id, "test": test, "hypothesis": hypothesis, "estimand": estimand, "artifact": artifact}
-        run_index[run_id] = data
-    return run_index, result_index
+
 
 
 def document_files(root: Path, layout: dict[str, list[str]]) -> list[Path]:
@@ -187,7 +175,7 @@ def document_files(root: Path, layout: dict[str, list[str]]) -> list[Path]:
     return files
 
 
-def parse_claims(root: Path, layout: dict[str, list[str]], nodes: dict[str, dict], edges: set[tuple[str, str, str]], result_index: dict[str, dict]) -> None:
+def parse_claims(root: Path, layout: dict[str, list[str]], nodes: dict[str, dict], edges: set[tuple[str, str, str]]) -> None:
     for path in document_files(root, layout):
         text = path.read_text(encoding="utf-8", errors="replace")
         for match in CLAIM.finditer(text):
@@ -205,8 +193,8 @@ def build(map_path: Path) -> dict:
     nodes: dict[str, dict] = {}
     edges: set[tuple[str, str, str]] = set()
     parse_plan(root, nodes, edges)
-    _, result_index = parse_runs(root, nodes, edges)
-    parse_claims(root, layout, nodes, edges, result_index)
+    parse_runs(root, nodes, edges)
+    parse_claims(root, layout, nodes, edges)
     return {
         "version": 2,
         "nodes": [nodes[key] for key in sorted(nodes)],
