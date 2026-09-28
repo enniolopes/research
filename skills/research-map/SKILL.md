@@ -1,10 +1,10 @@
 ---
 name: research-map
-description: Operational memory and mechanical validation across sessions for one research repository. Keeps a small RESEARCH.map pointing to authoritative artifacts, resumes state before work, updates on observable state changes, and composes legacy integrity checks with research 0.8 plan/run/lineage/exposure checks. Normally invoked internally by scientific-method; direct modes remain available for debugging and power users.
+description: Operational memory and mechanical validation across sessions for one research repository. Keeps a small RESEARCH.map pointing to authoritative artifacts, resumes state before work, updates on observable state changes, and composes legacy integrity checks with research 0.10 plan/run/lineage/exposure checks. Normally invoked internally by scientific-method; direct modes remain available for debugging and power users.
 when_to_use: Use internally at the start of an existing research session, after gate/hypothesis/registration/corrected-number changes, and before commits or release. Direct triggers include resume, status, validate, update the map, or initialize an existing research.
 license: CC-BY-NC-4.0
 metadata:
-  version: 0.9.0
+  version: 0.10.0
 argument-hint: 'init|resume|update|validate [path to RESEARCH.map]'
 ---
 
@@ -51,7 +51,7 @@ Update only on observable events: gate state/evidence changed, hypothesis termin
 
 ## `validate`
 
-Run the composed 0.8 validator:
+Run the composed 0.10 validator:
 
 ```bash
 python3 "${CLAUDE_SKILL_DIR}/scripts/validate_all.py" RESEARCH.map --offline
@@ -66,12 +66,12 @@ Legacy checks remain unchanged:
 - `citations` — bibliographic resolution; offline is `NOT_VERIFIED`;
 - `notebooks` — no committed notebook outputs/execution counts.
 
-0.8 adds:
+The epistemic checks add:
 
 - `plan` — stable H/E/T IDs, decision rules, assumptions/checks/failure actions, dependence and interpretation boundary;
-- `runs` — manifest integrity, result artifacts and confirmatory Git freeze ancestry;
+- `runs` — append-only run receipts, result artifacts, confirmatory plan/execution freeze ancestry, and a freeze→run diff containing only declared outputs;
 - `lineage` — material claim annotations resolve through inference/result/run and hypothesis-deciding claims use the planned primary test;
-- `exposure` — discovery data recorded as generating a hypothesis are not silently reused as independent confirmatory evidence.
+- `exposure` — data whose observed content generated or selected a non-precommitted confirmatory choice are not silently reused as independent confirmatory or validation evidence. Triggering an already-frozen rule is not adaptive generation.
 
 A check with nothing to examine reports `NOT_VERIFIED`, never `PASS`. Exit is nonzero on `FAIL`; `--strict` also treats `NOT_VERIFIED` as failure.
 
@@ -82,6 +82,14 @@ python3 "${CLAUDE_SKILL_DIR}/scripts/validate_all.py" RESEARCH.map --offline --o
 ```
 
 Mechanical `PASS` means only that those invariants passed. It never means the design, method or claim is scientifically true.
+
+For a run with a recorded replay recipe, computational regeneration is a separate check:
+
+```bash
+python3 "${CLAUDE_SKILL_DIR}/scripts/replay.py" RUN-4 --root .
+```
+
+It returns `EXACT`, `DRIFT`, `ERROR`, or `NOT_VERIFIED`. Replay is useful evidence, not a prerequisite for a scientifically valid run; restricted data, expensive computation or unavailable historical environments may legitimately remain `NOT_VERIFIED`.
 
 ## Boundaries
 

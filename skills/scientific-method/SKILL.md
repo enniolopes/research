@@ -4,8 +4,8 @@ description: Orchestrate observational quantitative research as an epistemic con
 when_to_use: Use to start or continue a research, check status, review a manuscript, and before fitting a model, changing a frozen plan, citing a source, reporting a material result, writing a claim or publishing. Also use when a new hypothesis or method appears after data exposure or protocol freeze.
 license: CC-BY-NC-4.0
 metadata:
-  version: 0.9.0
-argument-hint: '<start <question> | status | review [manuscript] | what you want to do>'
+  version: 0.10.0
+argument-hint: '<start <question> | status | review [manuscript] | replay RUN-<n> | what you want to do>'
 ---
 
 # Scientific method
@@ -45,6 +45,7 @@ The eight research phases below remain the lifecycle/navigation layer. Preflight
 - `start <question>` — start phase 1, initialize/resume memory, then proceed through the smallest next action.
 - `status` — internally resume and validate; return one-screen state and next action.
 - `review [path]` — run phase 7 for native work; use `reference/external-review.md` for third-party or historical work without native artifacts.
+- `replay RUN-<n>` — invoke the research-map replay helper when the run records a replay recipe; report `EXACT | DRIFT | ERROR | NOT_VERIFIED` without treating replay status as scientific truth.
 - anything else — answer the user's normal research request, but run the applicable preflight before a consequential action.
 
 On an existing repository, invoke `research-map resume` before the first research action. The user does not need to request it. Update the map on observable state changes and validate before commits/release.
@@ -55,7 +56,7 @@ For external review without a native map, use the external-review route instead 
 
 Read `reference/preflights.md` whenever an action matches one of these boundaries:
 
-- **FIT** — before a confirmatory run can expose its result.
+- **FIT** — before a confirmatory run can expose its result; the scientific plan and executable state must already be frozen.
 - **CHANGE_PLAN** — before changing a frozen hypothesis, estimand, method, population, threshold, outcome or fallback.
 - **CLAIM** — before a material result becomes prose or changes a hypothesis state.
 - **CITE** — before a source supports a scientific or methodological proposition.
@@ -87,15 +88,19 @@ Before confirmatory Phase 5 execution, create `analysis-plan.md` using `template
 
 For each confirmatory hypothesis the plan carries stable IDs for hypothesis, estimand and primary test; `Generated from:` exposure; dependence; decision rules; assumptions `A<n>`; checks `K<n>`; prospective failure actions; sensitivity/specification dimensions; and `May claim` / `May not claim` interpretation boundaries.
 
-`protocol_freeze` and `analysis_plan_freeze` are Git commits, not prose labels. Every material run writes `.research/runs/RUN-<n>.json` with those freezes, the run commit, hypothesis/estimand/test, typed data inputs and result artifacts. Temporal ancestry establishes repository order, not absence of prior human/model exposure elsewhere. Record known exposure and localize unverifiable history; never erase it by freezing later.
+`protocol_freeze` and `analysis_plan_freeze` are Git commits, not prose labels. Before a confirmatory result is exposed, record an `execution_freeze`: a Git commit at or after those scientific freezes containing the executable implementation, configuration, declared inputs and any repository-tracked environment recipe used for the run. The later run commit may differ from that execution freeze only by the run's declared output artifacts.
+
+Every material run writes `.research/runs/RUN-<n>.json` with the scientific freezes, `execution_freeze` for new confirmatory runs, the run commit, hypothesis/estimand/test, typed data inputs and result artifacts. A run receipt becomes append-only at the first commit that adds it; corrections create a new RUN identity rather than rewriting execution history. An optional `replay` object may record a command and repository-tracked environment paths so the result can be regenerated from `execution_freeze`; replay status is separate from scientific validity.
+
+Temporal ancestry establishes repository order, not absence of prior human/model exposure elsewhere. Record known exposure and localize unverifiable history; never erase it by freezing later.
 
 A historical analysis without trustworthy temporal provenance remains historical/`NOT_VERIFIED`; never reconstruct a freeze retrospectively as if it were observed.
 
 ## Exposure and exploration
 
-Datasets used in material hypothesis generation are identified as `DATA<n>` and recorded in `Generated from:`. Run inputs state `role: discovery | confirmatory | validation`.
+`Generated from:` records `DATA<n>` whose observed content materially generated, selected or changed a confirmatory commitment that was not already determined by a frozen rule. Merely triggering a prospective check/fallback that was already frozen does not make the triggering data generative. Run inputs state `role: discovery | confirmatory | validation`.
 
-If a hypothesis was generated from DATA1, reusing DATA1 as independent confirmatory evidence for that hypothesis is invalid. Route the result to `EXPLORATORY`, use a defensible independent/held-out source, or reopen the design. Registration after exposure does not erase exposure.
+If DATA1 adaptively generated or selected a commitment, reusing DATA1 as independent confirmatory or validation evidence for that commitment is invalid. Route the result to `EXPLORATORY`, use defensible independent/held-out evidence, or reopen the design. Registration after exposure does not erase exposure.
 
 A post-freeze idea has exactly four destinations:
 

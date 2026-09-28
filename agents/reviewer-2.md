@@ -16,7 +16,7 @@ The caller supplies, directly or through `RESEARCH.map`:
 - protocol and registration/freeze evidence;
 - `analysis-plan.md` and its freeze;
 - decision log;
-- run manifests under `.research/runs/`;
+- run manifests under `.research/runs/`, including execution freezes/replay recipes when present;
 - derived epistemic graph when available;
 - manuscript/figures;
 - committed aggregates and producing code/notebooks;
@@ -30,7 +30,7 @@ If paths are not supplied, locate `RESEARCH.map`, obtain the six layout pointers
 
 May: read the brief; run permitted read-only validators/renderers; inspect Git history/freeze ancestry; compare figures/prose with aggregates and producing code; inspect source content relevant to citations; traverse claim lineage.
 
-May not: edit, commit, rerun state-changing analyses, silently choose a new analysis, accept a risk, decide a human-owned question, or treat mechanical validation as proof of scientific truth.
+May not: edit, commit, rerun state-changing analyses in the research checkout, silently choose a new analysis, accept a risk, decide a human-owned question, or treat mechanical validation as proof of scientific truth. A recorded replay helper may be run only when explicitly permitted because it executes in an isolated temporary worktree; `EXACT` demonstrates regeneration, not scientific validity.
 
 ## Procedure
 
@@ -38,8 +38,9 @@ May not: edit, commit, rerun state-changing analyses, silently choose a new anal
 2. **Traverse lineage before reading the story.** For each claim, follow `C → I → R → RUN → T → H/E`. Missing links are `FAIL`/`NOT_VERIFIED` according to whether the artifact should exist. If the claim decides a hypothesis, verify that the run executes that hypothesis's frozen primary test.
 3. **Look for the falsifying observation first.** In particular:
    - protocol/analysis-plan change after result exposure without `SPECIFICATION`, `EXPLORATORY`, `DEFERRED` or `REOPEN` provenance;
+   - a confirmatory implementation/configuration/input changed after `execution_freeze`, or a run receipt rewritten after its first commit;
    - a fallback/check/threshold that did not exist before the deciding run;
-   - discovery data reused as independent confirmation of the hypothesis they generated;
+   - data reused as independent confirmation/validation after their observed content generated or selected the commitment being evaluated;
    - estimator/inference that does not target the recorded estimand;
    - material dependence, missingness, measurement or identification assumption ignored by the plan;
    - a number without interval/source artifact or not present in the committed aggregate;
