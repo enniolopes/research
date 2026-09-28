@@ -9,9 +9,9 @@
     {
       "name": "research",
       "source": ".",
-      "version": "0.10.0",
+      "version": "0.11.0",
       "strict": false,
-      "description": "Epistemic control for empirical research with prospective scientific/executable commitments, append-only run provenance, claim lineage, statistical planning and adversarial review."
+      "description": "Epistemic control for empirical research with prospective scientific/executable commitments, bounded semantic assessments, capability policy, append-only provenance and adversarial review."
     },
     {
       "name": "explorer",
