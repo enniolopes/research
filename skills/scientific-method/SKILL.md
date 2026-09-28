@@ -90,7 +90,20 @@ For each confirmatory hypothesis the plan carries stable IDs for hypothesis, est
 
 `protocol_freeze` and `analysis_plan_freeze` are Git commits, not prose labels. Before a confirmatory result is exposed, record an `execution_freeze`: a Git commit at or after those scientific freezes containing the executable implementation, configuration, declared inputs and any repository-tracked environment recipe used for the run. The later run commit may differ from that execution freeze only by the run's declared output artifacts.
 
-Every material run writes `.research/runs/RUN-<n>.json` with the scientific freezes, `execution_freeze` for new confirmatory runs, the run commit, hypothesis/estimand/test, typed data inputs and result artifacts. A run receipt becomes append-only at the first commit that adds it; corrections create a new RUN identity rather than rewriting execution history. An optional `replay` object may record a command and repository-tracked environment paths so the result can be regenerated from `execution_freeze`; replay status is separate from scientific validity.
+Every material run writes `.research/runs/RUN-<n>.json` with the scientific freezes, `execution_freeze` for new confirmatory runs, the run commit, hypothesis/estimand/test, typed data inputs and result artifacts. A run receipt becomes append-only at the first commit that adds it; corrections create a new RUN identity rather than rewriting execution history.
+
+For a new confirmatory run the operational order is fixed: freeze the scientific plan; commit the ready executable state as `execution_freeze`; execute without editing tracked implementation/configuration/inputs; commit only the declared outputs as the run `commit`; then write and commit the receipt that references both hashes. The receipt is therefore evidence about the run commit, not part of the run commit itself.
+
+An optional replay object may record a command and repository-tracked environment paths so the result can be regenerated from `execution_freeze`. Prefer an argv list; a string is tokenized without shell expansion:
+
+```json
+"replay": {
+  "command": ["uv", "run", "--frozen", "python", "analysis/h1.py"],
+  "environment": ["pyproject.toml", "uv.lock"]
+}
+```
+
+Replay status is separate from scientific validity.
 
 Temporal ancestry establishes repository order, not absence of prior human/model exposure elsewhere. Record known exposure and localize unverifiable history; never erase it by freezing later.
 
