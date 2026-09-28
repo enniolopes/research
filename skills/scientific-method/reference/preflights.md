@@ -16,6 +16,8 @@ Before exposing a confirmatory result, require:
 - a confirmatory `analysis_role: primary | sensitivity | specification | diagnostic`;
 - an `execution_freeze` satisfying the canonical run contract in `../../research-map/reference/run-receipt.md`.
 
+When the run uses an `ExecutionSpec`, validate the frozen spec and capability policy before execution. The runner/backend may claim only the restrictions it physically enforces; the local backend verifies the repository change boundary but does not enforce model/network isolation.
+
 Immediately before execution, tracked implementation/configuration/input state must match the execution freeze. Undeclared external, ignored or untracked runtime state is a limitation Git cannot retrospectively disprove.
 
 The frozen primary test alone may decide the hypothesis. Prospectively named sensitivity/specification/diagnostic runs may qualify it, never replace it as the deciding statistic.
