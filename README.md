@@ -82,7 +82,10 @@ The system handles the gates and preflights internally. If valid work can procee
 | `protocol.md` | Scientific question, hypotheses, estimands, and commitments |
 | `analysis-plan.md` | Primary tests, assumptions, checks, fallbacks, and interpretation limits |
 | `decisions.md` | Methodological decisions and revision conditions |
+| `.research/executions/` | Optional prospective execution specs: command, declared resources, outputs, and requested egress |
 | `.research/runs/` | Append-only run receipts: what was executed, on which inputs, under which scientific/execution freezes |
+| `.research/assessments/` | Optional immutable bounded semantic judgments over exact recorded evidence |
+| `.research/policy.json` | Optional deterministic model/network egress authorization for repository resources |
 | `aggregates/` | Computed results |
 | `.research/reviews/` | Separate-context adversarial review evidence |
 | manuscript | Scientific communication |
@@ -127,6 +130,8 @@ For debugging/power use:
 python3 <installed research-map>/scripts/validate_all.py RESEARCH.map --offline
 ```
 
+A run may bind to an optional committed `ExecutionSpec`. The local runner verifies a clean freeze and that execution changes exactly the declared outputs; it deliberately does not claim network/model isolation. Projects needing such isolation must use a backend that can physically enforce it.
+
 A run may additionally record an optional replay recipe. Replaying checks computational regeneration separately from scientific validity:
 
 ```text
@@ -144,6 +149,6 @@ python -m unittest discover -s tests -v
 python -m py_compile skills/research-map/scripts/*.py skills/research-graph/scripts/*.py
 ```
 
-The research plugin and its internal research skills share version `0.10.0`. The bundled `explorer` also remains installable standalone and keeps its own version line (`1.1.0`).
+The research plugin and its internal research skills share version `0.11.0`. The bundled `explorer` also remains installable standalone and keeps its own version line (`1.1.0`).
 
 The regression tests protecting this runtime live in this repository.
