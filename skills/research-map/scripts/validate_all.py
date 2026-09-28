@@ -9,12 +9,13 @@ from pathlib import Path
 
 import assessment
 import epistemic
+import execute
 import policy
 import validate as structural
 
 STRUCTURAL = {"map", "numbers", "decisions", "disclosure", "citations", "notebooks"}
 EPISTEMIC = {"plan", "runs", "lineage", "exposure"}
-OPTIONAL = {"assessments", "policy"}
+OPTIONAL = {"assessments", "executions", "policy"}
 ALL = STRUCTURAL | EPISTEMIC | OPTIONAL
 
 
@@ -29,6 +30,12 @@ def run(map_path: Path, root: Path, offline: bool, min_int: int, only: set[str] 
         only is None and assessment_dir.is_dir()
     ):
         results.append(assessment.check_assessments(root))
+
+    execution_dir = root / ".research" / "executions"
+    if (only is not None and "executions" in only) or (
+        only is None and execution_dir.is_dir()
+    ):
+        results.append(execute.check_execution_specs(root))
 
     policy_path = root / ".research" / "policy.json"
     if (only is not None and "policy" in only) or (
