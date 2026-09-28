@@ -10,6 +10,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+VALIDATE_ALL = ROOT / "skills" / "research-map" / "scripts" / "validate_all.py"
 
 
 def load(name: str, relative: str):
@@ -86,6 +87,25 @@ class AssessmentTests(unittest.TestCase):
         git(self.root, "commit", "-m", "record assessment")
         result = assessment.check_assessments(self.root)
         self.assertEqual(result.status, "PASS", result.lines)
+
+        (self.root / "RESEARCH.map").write_text("# assessment-only validation\n", encoding="utf-8")
+        composed = subprocess.run(
+            [
+                sys.executable,
+                str(VALIDATE_ALL),
+                "RESEARCH.map",
+                "--root",
+                str(self.root),
+                "--only",
+                "assessments",
+            ],
+            cwd=self.root,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(composed.returncode, 0, composed.stdout + composed.stderr)
+        self.assertIn("assessments", composed.stdout)
+        self.assertIn("RESULT PASS", composed.stdout)
 
     def test_evidence_digest_must_match_exact_text(self):
         self.record(digest="0" * 64)
