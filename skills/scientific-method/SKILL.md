@@ -127,7 +127,7 @@ If it decides a hypothesis:
 
 ## Sources
 
-A source may guide search when merely discovered. It supports a scientific or methodological proposition only after the relevant content has been retrieved and read. DOI/landing-page resolution establishes identity/reachability, not semantic entailment. Do not create a separate source-state ledger unless a concrete project needs one.
+A source may guide search when merely discovered. It supports a scientific or methodological proposition only after the relevant content has been retrieved and read. DOI/landing-page resolution establishes identity/reachability, not semantic entailment. For a narrow, repeated semantic question where the evidence-to-proposition relation is material or ambiguous, `reference/assessments.md` defines an optional tool-less assessment; it records a bounded judgment but never substitutes for reading the source or grants scientific authority. Do not create a separate source-state ledger unless a concrete project needs one.
 
 ## Terminal states
 
@@ -161,7 +161,7 @@ A later finding can reopen an earlier phase. Skipping a required phase is a logg
 - `statistical-analysis` — estimand-first analysis plan, EDA boundary, dependence and missingness decisions.
 - `research-map` — operational memory and composed mechanical validation.
 - `research-graph` — in-memory lineage trace/why/changed queries.
-- `reviewer-2` — separate-context, non-editing adversarial review.
+- `assessor` — optional tool-less semantic judgment for a versioned narrow assessment spec; it cannot act on its own answer.\n- `reviewer-2` — separate-context, non-editing adversarial review.
 
 Invoke delegates; do not simulate them by reading their instructions. If a needed delegate cannot run, the affected check is `NOT_VERIFIED`.
 
