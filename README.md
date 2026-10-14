@@ -1,160 +1,81 @@
-# research
+# Research
 
-Research system for Claude Code. It keeps empirical research problem-first, prospective, traceable, and adversarially reviewed in a separate context.
+A Claude Code plugin for carrying an empirical study from question to manuscript with explicit scientific commitments, traceable results and separate-context review. Its current focus is observational quantitative research, especially administrative data.
 
-Scope: observational quantitative research, especially administrative data.
+## Start a study
 
-## Quick start
+You need Claude Code, Git and Python 3.10+. Work in a Git repository for **your study**, separate from this plugin's source repository. For a new study, run in a terminal:
 
-Run Claude Code from the root of a **Git repository** for the research project. Git history records commitment/run order; exposure outside that history must be disclosed separately.
+```sh
+mkdir my-study
+cd my-study
+git init
+```
 
-Install the plugin from this repository:
+Open Claude Code in that directory. Add the marketplace and install Research once:
 
 ```text
 /plugin marketplace add enniolopes/research
-/plugin install research@enniolopes
+/plugin install research@research
 ```
 
-`research` already includes `explorer` because it is bundled under this plugin's `skills/` directory. No second marketplace is required.
+Complete the install dialog; choose user scope to use Research across your study repositories. If the install requests a reload, run `/reload-plugins`. Check that `/research:scientific-method` appears when you type `/`.
 
-To install only the standalone explorer without the research system:
+Start with your own question. For example:
 
 ```text
-/plugin marketplace add enniolopes/research
-/plugin install explorer@enniolopes
+/research:scientific-method start Is travel time to school associated with absenteeism?
 ```
 
-Start a new research project:
-
-```text
-/research:scientific-method start <idea or question>
-```
-
-Then talk normally. For example:
+Then talk normally:
 
 ```text
 Explore alternative explanations.
-Check whether the problem is actually present in the data.
-I want to start the analysis.
-This result looks strange; investigate it.
-Write the results section.
+Check whether the data can answer this question.
+Plan the analysis before running it.
+Investigate this unexpected result.
+Write the results section from the evidence.
 Review the paper before submission.
 ```
 
-For an existing research repository, invoke:
+`scientific-method` coordinates the internal skills, validators and reviewer. You do not need to invoke each component manually. Explorer is already included.
 
-```text
-/research:scientific-method
-```
+## Continue or review
 
-Useful explicit commands:
+Open Claude Code in the same study repository. Use:
 
-```text
-/research:scientific-method status
-/research:scientific-method review [manuscript]
-```
-
-You do **not** need to call `research-map`, `statistical-analysis`, `research-graph`, `explorer`, validators, or `reviewer-2` manually. The orchestrator uses them when needed.
-
-## How it works
-
-Research follows five rules:
-
-1. **Problem first.** Formulate the question, explore alternatives, and try to make the empirical premise disappear before committing to expensive analysis.
-2. **Commit before exposure.** Confirmatory choices that a result could influence are recorded and frozen before that result is seen.
-3. **Evidence over narrative.** Executed code and inspected sources outrank memory, confidence, or explanation.
-4. **Discovery is not confirmation.** Data used to generate a hypothesis do not independently confirm it.
-5. **Claims need lineage and challenge.** Material claims trace back to evidence and face separate-context adversarial review before release.
-
-The lifecycle remains:
-
-```text
-problem → literature → protocol → data → analysis → writing → review → publication
-```
-
-The system handles the gates and preflights internally. If valid work can proceed, it should proceed; if a required condition is missing, it becomes `BLOCKED` or `NOT_VERIFIED` rather than being invented.
-
-## What the system records
-
-| Artifact | Purpose |
+| What you want | Command |
 |---|---|
-| `RESEARCH.map` | Current research state and next action |
-| `protocol.md` | Scientific question, hypotheses, estimands, and commitments |
-| `analysis-plan.md` | Primary tests, assumptions, checks, fallbacks, and interpretation limits |
-| `decisions.md` | Methodological decisions and revision conditions |
-| `.research/executions/` | Optional prospective execution specs: command, declared resources, outputs, and requested egress |
-| `.research/runs/` | Append-only run receipts: what was executed, on which inputs, under which scientific/execution freezes |
-| `.research/assessments/` | Optional immutable bounded semantic judgments over exact recorded evidence |
-| `.research/policy.json` | Optional deterministic model/network egress authorization for repository resources |
-| `aggregates/` | Computed results |
-| `.research/reviews/` | Separate-context adversarial review evidence |
-| manuscript | Scientific communication |
+| Continue the work | `/research:scientific-method` |
+| See the current conclusion, blockers and next action | `/research:scientific-method status` |
+| Review a manuscript | `/research:scientific-method review documents/paper.md` |
 
-Lineage queries are derived in memory from authoritative artifacts; no graph cache is a source of truth.
+Replace the manuscript path with your file. Third-party or historical papers can also be reviewed without inventing a new protocol or execution history.
 
-Construct and mechanism claims explicitly connect measures to interpretations and examine discriminating evidence against plausible alternatives. When evidence changes, revision preserves unaffected findings and reassesses surviving support. Third-party reviews distinguish reported, reconstructed and reproduced findings without demanding native plugin artifacts. Graph queries identify candidate dependencies; they do not decide scientific validity.
+## What to expect
 
-## What happens at important boundaries
+Research guides the agent to establish the question before choosing an analysis, record confirmatory choices before seeing their results, and write claims from inspected sources or executed evidence. New ideas remain open to exploration; a result-driven change is recorded rather than silently presented as confirmation.
 
-- **Before a confirmatory fit:** the system checks the estimand, primary test, assumptions/checks/failure actions, dependence, scientific freezes, registration/data exposure, then freezes the executable state before the result is exposed.
-- **After a frozen-plan change:** the idea must become `SPECIFICATION`, `EXPLORATORY`, `DEFERRED`, or an explicit `REOPEN`; silent rewrites are not allowed.
-- **Before a material claim:** the result, run, planned test, checks, and interpretation boundary must support the wording.
-- **Before citing a source as evidence:** the relevant source content must have been retrieved and read.
-- **Before publication:** material claims need current separate-context adversarial review and no unresolved material failure.
+The agent keeps progress and the next action in `RESEARCH.map`; plans, decisions, results and reviews remain inspectable in your study repository. At consequential steps, missing evidence, review or human authority is made explicit. A useful outcome may be a narrower conclusion, an inconclusive result or a decision not to pursue the original question.
 
-## Research states
+The plugin supplies instructions and mechanical checks. It does not guarantee that every host action is intercepted, authenticate reviewer expertise, or establish scientific truth from a validator `PASS`. Prior exposure outside Git history must be disclosed; execution checks do not provide network or model isolation.
 
-The initial problem can end as:
+## Optional controls
 
-```text
-SHOWN | NOT_SHOWN | INCONCLUSIVE
-```
+For versioned quality criteria, claim adoption/revision and checks over the actual release package, opt into the experimental [decision supervisor](skills/research-map/reference/supervision.md). Its guide covers setup, commands, recovery and current limits. Native host interception and scientific efficacy remain unverified.
 
-Hypotheses end as:
+For manual validation or computational replay, see the [research-map guide](skills/research-map/SKILL.md). The agent normally invokes these tools when needed.
 
-```text
-CONFIRMED | REFUTED | INCONCLUSIVE | BLOCKED | NOT_VERIFIED
-```
+If you want only Explorer, add the marketplace above and install `explorer@research` instead of `research@research`.
 
-These are decisions under the recorded design and rules, not universal truth labels.
+## Develop the plugin
 
-## Validation
+The runtime uses the Python standard library. From a checkout of **this repository**, run:
 
-The validator checks mechanical properties such as map integrity, prospective plan structure, Git ancestry, append-only run receipts, execution-freeze→run diffs, result provenance, claim lineage, adaptive data exposure, citations, and notebooks.
-
-A validator `PASS` means only that coded invariants passed. It does **not** prove that the scientific design or interpretation is correct.
-
-For debugging/power use:
-
-```text
-python3 <installed research-map>/scripts/validate_all.py RESEARCH.map --offline
-```
-
-A run may bind to an optional committed `ExecutionSpec`. The local runner verifies a clean freeze and that execution changes exactly the declared outputs; it deliberately does not claim network/model isolation. Projects needing such isolation must use a backend that can physically enforce it.
-
-A run may additionally record an optional replay recipe. Replaying checks computational regeneration separately from scientific validity:
-
-```text
-python3 <installed research-map>/scripts/replay.py RUN-4 --root .
-```
-
-Replay returns `EXACT | DRIFT | ERROR | NOT_VERIFIED`.
-
-## Experimental scientific decision supervisor
-
-The opt-in supervisor adds versioned reference contracts, exact-formulation review manifests, decision admission, irreversible supersession/withdrawal, a derived dependency graph and release checks over actual package bytes. Initialize it in a research project with `python3 <research-map>/scripts/research.py supervise init --root .` and commit its project identity. The orchestrator handles the subsequent controls; drafts and brainstorming remain fluid.
-
-See [ownership and verification](docs/architecture.md) and the [operator guide and current limits](skills/research-map/reference/supervision.md). Control is enforced through the cooperative CLI; native host interception and scientific efficacy remain unverified.
-
-## Runtime and development
-
-The runtime uses only the Python standard library and supports Python 3.10+. CI compiles the runtime and runs regression tests on Python 3.10 and 3.12.
-
-```text
+```sh
 python -m unittest discover -s tests -v
-python -m py_compile skills/research-map/scripts/*.py skills/research-graph/scripts/*.py
 ```
 
-The research plugin and its internal research skills share version `0.11.0`. The bundled `explorer` also remains installable standalone and keeps its own version line (`1.1.0`).
+Start with [AGENTS.md](AGENTS.md) for maintenance constraints and verification commands, and [architecture](docs/architecture.md) for ownership and change boundaries. The [runtime CLI](skills/research-map/scripts/research.py) is the code entry point; [CI](.github/workflows/test.yml) runs compilation, regression tests and metadata checks on Python 3.10 and 3.12.
 
-The regression tests protecting this runtime live in this repository.
+License: [CC BY-NC 4.0](LICENSE).
