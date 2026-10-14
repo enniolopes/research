@@ -33,3 +33,14 @@ class InstructionTopologyTests(unittest.TestCase):
                 elif isinstance(node, ast.ImportFrom) and node.module:
                     imports.add(node.module.split(".")[0])
             self.assertFalse(imports & forbidden, f"{name}: domain depends on orchestration")
+
+    def test_readme_plugin_install_ids_match_marketplace(self):
+        import json
+        marketplace = json.loads((ROOT / ".claude-plugin/marketplace.json").read_text())
+        plugin_names = {entry["name"] for entry in marketplace["plugins"]}
+        install_ids = re.findall(r"(?:\bplugin\s+install\s+|\binstall\s+`)([\w-]+)@([\w.-]+)", (ROOT / "README.md").read_text())
+        self.assertTrue(install_ids, "README has no plugin install IDs")
+        for plugin, source in install_ids:
+            with self.subTest(plugin=plugin, marketplace=source):
+                self.assertIn(plugin, plugin_names)
+                self.assertEqual(source, marketplace["name"])
