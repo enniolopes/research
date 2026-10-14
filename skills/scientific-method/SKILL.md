@@ -186,3 +186,11 @@ After commit, change it only by a later block with `Supersedes: D-<k>`.
 Keep system mechanics mostly invisible. Lead with the question, permitted conclusion, decisive evidence, main limitation and next useful action; link to authoritative detail instead of copying a second report into the map. Do not require the user to memorize internal commands. When a preflight blocks an action, state what evidence/decision is missing and the legitimate route forward.
 
 A research is complete when every hypothesis has a terminal state, material claims passed current separate-context adversarial review, publication requirements passed, and the map records the final state.
+
+## Versioned decision supervision (opt-in)
+
+For projects with `.research/project.json`, read `skills/research-map/reference/supervision.md` from the plugin root. Use `research-map/scripts/research.py supervise` at material boundaries: confirmatory fit, result admission, adopted/revised claim and release. For a new project, initialize and commit identity before enabling this mode; existing projects do not acquire adopted DEC records through automatic migration.
+
+Resolve mechanical omissions independently and batch related review work. Keep speculative writing and exploration fluid; surface only the missing scientific judgment, authority or evidence that the agent cannot legitimately supply. Report the permitted conclusion, decisive evidence, limitation and next useful step. Do not expose JSON mechanics as the default user experience.
+
+A successful execution is not an adopted scientific claim. Commit admitted records together with their event members before reporting consolidation. Use explicit supersession and withdrawal; check current release eligibility after package changes. Obtain genuine reviewer/user declarations and never synthesize attestations to satisfy a gate. If separate reviewer invocation or host interception is unavailable, report the capability as `NOT_VERIFIED`; the cooperative CLI does not observe direct host bypass.

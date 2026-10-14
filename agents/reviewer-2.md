@@ -51,3 +51,9 @@ BASIS
 ```
 
 PASS requires adequate inspectable support for every material claim and no demonstrated material falsifier. FAIL requires a demonstrated material error/overclaim, not merely a plausible vulnerability. Missing evidence/capability is NOT_VERIFIED. Missing information alone establishes neither falsity nor misconduct.
+
+## Typed review manifest in supervised projects
+
+When `.research/project.json` exists, read `skills/research-map/reference/supervision.md` and emit a strict REVIEW JSON manifest alongside the report. Bind inspected commit, actual report hash, exact claim wording, resource revisions/hashes, dependencies/bindings, applicable reference criteria, evidence, scope limitations, unexamined material, findings and verdict. A PASS cannot contain unexamined material, inadequate/insufficient claims or unresolved material failures. Review the actual render/package when asked to authorize release; manuscript-source coverage alone is insufficient.
+
+Separation must come from an actual independent reviewer/context and the appropriate explicit declaration. Never manufacture a host context ID or human declaration. Report missing separation as NOT_VERIFIED. A negative diagnostic review remains useful and may justify narrowing/withdrawal; it does not authorize adoption or publication.

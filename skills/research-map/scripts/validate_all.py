@@ -11,11 +11,12 @@ import assessment
 import epistemic
 import execute
 import policy
+import supervision_state
 import validate as structural
 
 STRUCTURAL = {"map", "numbers", "decisions", "disclosure", "citations", "notebooks"}
 EPISTEMIC = {"plan", "runs", "lineage", "exposure"}
-OPTIONAL = {"assessments", "executions", "policy"}
+OPTIONAL = {"assessments", "executions", "policy", "supervision"}
 ALL = STRUCTURAL | EPISTEMIC | OPTIONAL
 
 
@@ -43,6 +44,10 @@ def run(map_path: Path, root: Path, offline: bool, min_int: int, only: set[str] 
     ):
         _, policy_result = policy.load_policy(root)
         results.append(policy_result)
+    if (only is not None and "supervision" in only) or (
+        only is None and (root / ".research/project.json").is_file()
+    ):
+        results.append(supervision_state.check_supervision(root))
     return results
 
 

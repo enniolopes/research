@@ -74,3 +74,7 @@ VALIDATOR_PASS -> SCIENTIFICALLY_TRUE
 ```
 
 Route an invalid transition to prospective fallback, `EXPLORATORY`, `DEFERRED`, `REOPEN`, `BLOCKED` or `NOT_VERIFIED`.
+
+## Opt-in decision supervisor
+
+For initialized projects (`.research/project.json`), run the deterministic supervisor at FIT, result admission, material claim adoption/revision and release, as described in `../../research-map/reference/supervision.md`. A checked action, an executed analysis, an admitted record and a committed consolidation are distinct effects. Recheck release against the actual render and package. Continue independent drafting/exploration while unresolved evidence/judgment is obtained; never invent attestation or review to clear a gate.
