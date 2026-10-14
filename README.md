@@ -140,6 +140,12 @@ python3 <installed research-map>/scripts/replay.py RUN-4 --root .
 
 Replay returns `EXACT | DRIFT | ERROR | NOT_VERIFIED`.
 
+## Experimental scientific decision supervisor
+
+The opt-in supervisor adds versioned reference contracts, exact-formulation review manifests, decision admission, irreversible supersession/withdrawal, a derived dependency graph and release checks over actual package bytes. Initialize it in a research project with `python3 <research-map>/scripts/research.py supervise init --root .` and commit its project identity. The orchestrator handles the subsequent controls; drafts and brainstorming remain fluid.
+
+See [operator guide](skills/research-map/reference/supervision.md), [implementation status and limits](docs/implementation-status.md), and [design specification](docs/research-supervisor-spec.md). Control is enforced through the cooperative CLI; native host interception and scientific efficacy remain unverified.
+
 ## Runtime and development
 
 The runtime uses only the Python standard library and supports Python 3.10+. CI compiles the runtime and runs regression tests on Python 3.10 and 3.12.
