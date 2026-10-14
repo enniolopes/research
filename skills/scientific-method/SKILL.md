@@ -48,7 +48,7 @@ The eight research phases below remain the lifecycle/navigation layer. Preflight
 - `replay RUN-<n>` — invoke the research-map replay helper when the run records a replay recipe; report `EXACT | DRIFT | ERROR | NOT_VERIFIED` without treating replay status as scientific truth.
 - anything else — answer the user's normal research request, but run the applicable preflight before a consequential action.
 
-On an existing repository, invoke `research-map resume` before the first research action. Resume runs only the fast `map,plan,runs,exposure` subset; run full validation before commits, review and release. Update the map only on observable state changes.
+On an existing repository, invoke `research-map resume` before the first research action. Resume runs the fast integrity subset specified by `research-map`; run full validation before commits, review and release. Update the map only on observable state changes.
 
 For external review without a native map, use the external-review route instead of initializing a fictitious research history. Read `reference/inference-and-revision.md` when interpreting constructs/mechanisms, selecting a discriminating investigation or revising an existing conclusion. Keep its bridge in existing authoritative artifacts; a new ontology or database is not required.
 
@@ -189,8 +189,4 @@ A research is complete when every hypothesis has a terminal state, material clai
 
 ## Versioned decision supervision (opt-in)
 
-For projects with `.research/project.json`, read `skills/research-map/reference/supervision.md` from the plugin root. Use `research-map/scripts/research.py supervise` at material boundaries: confirmatory fit, result admission, adopted/revised claim and release. For a new project, initialize and commit identity before enabling this mode; existing projects do not acquire adopted DEC records through automatic migration.
-
-Resolve mechanical omissions independently and batch related review work. Keep speculative writing and exploration fluid; surface only the missing scientific judgment, authority or evidence that the agent cannot legitimately supply. Report the permitted conclusion, decisive evidence, limitation and next useful step. Do not expose JSON mechanics as the default user experience.
-
-A successful execution is not an adopted scientific claim. Commit admitted records together with their event members before reporting consolidation. Use explicit supersession and withdrawal; check current release eligibility after package changes. Obtain genuine reviewer/user declarations and never synthesize attestations to satisfy a gate. If separate reviewer invocation or host interception is unavailable, report the capability as `NOT_VERIFIED`; the cooperative CLI does not observe direct host bypass.
+When `.research/project.json` exists, use the action routing and role contract in `../research-map/reference/supervision.md`. Resolve the runtime path from the installed plugin, independently of the research project's current directory. Supervision checks the applicable material action; ordinary drafting and exploration remain fluid. Historical work is not automatically migrated into adopted decisions.

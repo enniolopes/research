@@ -228,7 +228,12 @@ def check(value, schema, label="$", errors=None):
 
 
 def validate(data: dict) -> None:
-    schema = SCHEMAS.get(data.get("schema_version"))
+    if not isinstance(data, dict):
+        raise ContractError("expected JSON object")
+    version = data.get("schema_version")
+    if not isinstance(version, str):
+        raise ContractError("schema_version must be a string")
+    schema = SCHEMAS.get(version)
     if schema is None:
         raise ContractError("unknown schema_version")
     errors = check(data, schema)

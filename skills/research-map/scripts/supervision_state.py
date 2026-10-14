@@ -145,16 +145,24 @@ class Store:
 
     def references(self, refs, action: str, covered=None, current=False) -> list[tuple[str, str]]:
         results = []
+        effective_refs = set(refs)
         if current:
             selected = {review.ref_parts(raw)[0] for raw in refs}
             all_refs = {rid: r for rid, r in self.records.items() if r["schema_version"] == "references@1" and rid in self.committed}
             superseded = {r["supersedes"] for r in all_refs.values() if r["supersedes"]}
             for rid, r in all_refs.items():
-                if rid not in superseded and any(c["materiality"] == "required" and action in c["applies_to"] for c in r["criteria"]) and rid not in selected:
+                if rid in superseded:
+                    continue
+                required = [c for c in r["criteria"] if c["materiality"] == "required" and action in c["applies_to"]]
+                if required and rid not in selected:
                     results.append(("NOT_VERIFIED", f"active project reference missing: {rid}"))
+                for criterion in required:
+                    key = rid + "#" + criterion["id"]
+                    if rid not in refs:
+                        effective_refs.add(key)
             if selected & superseded:
                 results.append(("FAIL", "new action selected a superseded reference contract"))
-        for raw in refs:
+        for raw in sorted(effective_refs):
             rid, cid = review.ref_parts(raw)
             ref = self.records.get(rid)
             if not ref or rid not in self.committed or ref["schema_version"] != "references@1":
@@ -168,13 +176,13 @@ class Store:
             if not candidates:
                 results.append(("FAIL", f"criterion does not exist: {raw}"))
             for c in candidates:
+                if action not in c["applies_to"] or c["materiality"] == "advisory":
+                    continue
                 if c.get("refresh_at"):
                     from datetime import datetime, timezone
                     if datetime.now(timezone.utc) >= datetime.fromisoformat(c["refresh_at"].replace("Z", "+00:00")):
                         results.append(("NOT_VERIFIED", f"criterion requires renewed inspection: {rid}#{c['id']}"))
                 key = rid + "#" + c["id"]
-                if action not in c["applies_to"] or c["materiality"] == "advisory":
-                    continue
                 if key not in (covered or set()):
                     results.append(("NOT_VERIFIED", f"required criterion not adjudicated: {key}"))
         return results
@@ -270,7 +278,8 @@ class Store:
         if rid in self._cache:
             return self._cache[rid]
         record = self.records[rid]
-        successors = [r for r in self.records.values() if r.get("supersedes") == rid and self.consolidated(r["id"])]
+        successors = [r for r in self.records.values() if r.get("supersedes") == rid and
+                      ((r["schema_version"] == "references@1" and r["id"] in self.committed) or self.consolidated(r["id"]))]
         if len(successors) > 1:
             raise RecoveryRequired(f"conflicting successors of {rid}")
         if successors:
@@ -283,6 +292,8 @@ class Store:
             checks = review.evaluate(self.root, record, self.records, self.committed, self.paths[rid], require_adequacy=False)
         elif record["schema_version"] == "decision@1":
             checks = self.decision_checks(record, (*stack, rid))
+        elif record["schema_version"] == "references@1":
+            checks = self.references([rid], None)
         elif record["schema_version"] == "release@1":
             from release import evaluate
             checks = evaluate(self, record)
@@ -314,7 +325,7 @@ def check_supervision(root: Path) -> Result:
             state, checks = store.state(rid)
             for status, why in checks:
                 result.add(status, f"{rid}: {why}")
-            if state != "CURRENT":
+            if state not in ("CURRENT", "SUPERSEDED", "WITHDRAWN"):
                 result.add("NOT_VERIFIED", f"{rid}: {state}")
         result.summary = f"{len(store.records)} supervision record(s); process integrity only"
     except (ContractError, OSError) as exc:

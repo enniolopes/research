@@ -41,6 +41,16 @@ def build(store):
             for b in record["dependencies"]:
                 edges.append({"from": res(b["resource_ref"], record), "to": rid,
                               "relation": "examined_dependency", "binding": b["binding"]})
+        if record["schema_version"] == "release@1":
+            for ref in record["resources"]:
+                edges.append({"from": res(ref, record), "to": rid, "relation": "package_member"})
+            for dependency in record["decision_refs"] + record["review_refs"] + record["authority_refs"]:
+                edges.append({"from": dependency, "to": rid, "relation": "release_requires"})
+        references = record.get("references", record.get("reference_set", []))
+        if record["schema_version"] == "release@1":
+            references = record["target"]["reference_set"]
+        for pointer in references:
+            edges.append({"from": pointer.split("#")[0], "to": rid, "relation": "reference_contract"})
         if record.get("supersedes"):
             edges.append({"from": record["supersedes"], "to": rid, "relation": "supersedes"})
     return {"effect": "checked", "version": 1, "nodes": [nodes[k] for k in sorted(nodes)],

@@ -9,3 +9,5 @@ After freeze, EDA is limited to planned quality/assumption/diagnostic questions 
 The frozen primary test decides the confirmatory hypothesis under its recorded rule. Valid sensitivity/specification results qualify robustness and discordance is reported rather than used to select the favorable answer.
 
 Exit when confirmatory runs have valid receipts, planned checks have consequences recorded, result artifacts are committed and each analyzed hypothesis has a terminal state.
+
+In supervised projects, follow the corresponding action and role contract in `../../research-map/reference/supervision.md`.

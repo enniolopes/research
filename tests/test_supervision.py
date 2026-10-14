@@ -364,11 +364,130 @@ class SupervisionTests(unittest.TestCase):
         commit(self.root)
         result = supervise.propose(self.root, self.request("ADOPT_CLAIM", record=self.decision(r)))
         self.assertNotEqual(result["disposition"], "ALLOW")
+        self.assertEqual(state.Store(self.root).state("REF-1")[0], "SUPERSEDED")
+        self.assertEqual(state.Store(self.root).state("REF-2")[0], "CURRENT")
 
     def test_dispatcher_reports_real_capabilities(self):
         process = subprocess.run([sys.executable, str(SCRIPTS / "research.py"), "supervise", "capabilities"], capture_output=True, text=True)
         self.assertEqual(process.returncode, 0, process.stderr)
         self.assertFalse(json.loads(process.stdout)["observes_external_exposure"])
+
+    def test_each_required_criterion_must_be_covered_even_when_ref_selected(self):
+        r = self.create_review()
+        store = state.Store(self.root)
+        extra = copy.deepcopy(store.records["REF-1"]["criteria"][0])
+        extra["id"] = "QC-2"
+        store.records["REF-1"]["criteria"].append(extra)
+        outcomes = store.references(["REF-1#QC-1"], "ADOPT_CLAIM", {"REF-1#QC-1"}, current=True)
+        self.assertTrue(any(status != "PASS" and "QC-2" in why for status, why in outcomes), outcomes)
+
+    def test_follow_current_record_detects_successor_not_predecessor(self):
+        r = self.create_review()
+        records = state.Store(self.root).records
+        binding = {"resource_ref": "RES-PAPER", "binding": "follow_current", "current_record": "REF-1"}
+        successor = copy.deepcopy(records["REF-1"])
+        successor.update(id="REF-2", supersedes="REF-1")
+        records["REF-2"] = successor
+        self.assertEqual(resources.applicability(self.root, binding, r, records)[0], "STALE")
+        binding["current_record"] = "REF-2"
+        self.assertEqual(resources.applicability(self.root, binding, r, records)[0], "PASS")
+
+    def test_committed_rewrite_cannot_be_hidden_by_worktree_restoration(self):
+        r = self.create_review()
+        path = self.root / ".research/reviews/REVIEW-1.json"
+        original = path.read_bytes()
+        changed = copy.deepcopy(r); changed["coverage"]["limitations"] = ["Changed in history."]
+        write(self.root, ".research/reviews/REVIEW-1.json", changed); commit(self.root)
+        path.write_bytes(original)
+        self.assertEqual(resources.committed_unchanged(self.root, ".research/reviews/REVIEW-1.json")[0], "FAIL")
+        commit(self.root, "restore original bytes")
+        self.assertEqual(resources.committed_unchanged(self.root, ".research/reviews/REVIEW-1.json")[0], "FAIL")
+
+    def test_release_inspection_requires_consolidation_and_repository_integrity(self):
+        r = self.create_review()
+        supervise.admit(self.root, self.request("ADOPT_CLAIM", record=self.decision(r))); commit(self.root)
+        supervise.admit(self.root, self.request("RELEASE", "REL-1", self.release_record(r)))
+        command = [sys.executable, str(SCRIPTS / "research.py"), "supervise", "release-inspect", "--root", str(self.root), "--id", "REL-1"]
+        pending = subprocess.run(command, capture_output=True, text=True)
+        self.assertNotEqual(pending.returncode, 0, pending.stdout)
+        commit(self.root)
+        (self.root / ".research/reviews/BROKEN.json").write_text("{}")
+        invalid = subprocess.run(command, capture_output=True, text=True)
+        self.assertNotEqual(invalid.returncode, 0, invalid.stdout)
+
+    def test_superseded_history_does_not_block_clean_current_decision(self):
+        r = self.create_review()
+        supervise.admit(self.root, self.request("ADOPT_CLAIM", record=self.decision(r))); commit(self.root)
+        d = self.decision(r, "DEC-2"); d.update(action="REVISE_DECISION", supersedes="DEC-1", disposition="retain")
+        result = supervise.admit(self.root, self.request("REVISE_DECISION", record=d))
+        self.assertEqual(result["disposition"], "ALLOW", result)
+        commit(self.root)
+        self.assertEqual(state.Store(self.root).state("DEC-1")[0], "SUPERSEDED")
+        result = state.check_supervision(self.root)
+        self.assertEqual(result.status, "PASS", result.lines)
+
+    def test_release_dependencies_are_in_affected_graph(self):
+        r = self.create_review()
+        supervise.admit(self.root, self.request("ADOPT_CLAIM", record=self.decision(r))); commit(self.root)
+        supervise.admit(self.root, self.request("RELEASE", "REL-1", self.release_record(r))); commit(self.root)
+        g = graph.build(state.Store(self.root))
+        self.assertIn("REL-1", graph.affected(g, "DEC-1")["affected_candidates"])
+        self.assertIn("REL-1", graph.affected(g, "REVIEW-1")["affected_candidates"])
+
+    def test_fit_registration_cannot_contradict_recorded_project(self):
+        request = self.request("FIT_CONFIRMATORY", "H1")
+        request["registration"] = "a different registration"
+        result = supervise.run(self.root, request)
+        self.assertNotEqual(result["disposition"], "ALLOW", result)
+        self.assertFalse((self.root / "aggregates/r1.txt").exists())
+
+    def test_nonobject_request_has_structured_contract_error(self):
+        command = [sys.executable, str(SCRIPTS / "research.py"), "supervise", "propose", "--root", str(self.root), "--request", "-"]
+        for raw in ("[]", "null", '{"schema_version": []}', '{"schema_version": {}}'):
+            process = subprocess.run(command, input=raw, capture_output=True, text=True)
+            self.assertEqual(process.returncode, 2, process.stderr)
+            self.assertTrue(json.loads(process.stdout)["contract_invalid"])
+
+    def test_fit_cannot_execute_an_ignored_uncommitted_spec(self):
+        (self.root / ".gitignore").write_text(".research/executions/EXEC-2.json\n")
+        commit(self.root)
+        spec = json.loads((self.root / ".research/executions/EXEC-1.json").read_text())
+        spec["id"] = "EXEC-2"
+        write(self.root, ".research/executions/EXEC-2.json", spec)
+        request = self.request("FIT_CONFIRMATORY", "H1"); request["execution_id"] = "EXEC-2"
+        result = supervise.run(self.root, request)
+        self.assertNotEqual(result["disposition"], "ALLOW", result)
+        self.assertFalse((self.root / "aggregates/r1.txt").exists())
+
+    def test_malformed_execution_spec_returns_structured_block(self):
+        (self.root / ".research/executions/EXEC-1.json").write_text("[]")
+        commit(self.root)
+        request = self.request("FIT_CONFIRMATORY", "H1")
+        command = [sys.executable, str(SCRIPTS / "research.py"), "supervise", "run", "--root", str(self.root), "--request", "-"]
+        result = subprocess.run(command, input=json.dumps(request), capture_output=True, text=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertTrue(result.stdout.strip(), result.stderr)
+        self.assertEqual(json.loads(result.stdout)["disposition"], "BLOCK", result.stderr)
+
+    def test_legacy_execution_specs_preserve_committed_rewrite_history(self):
+        execution = importlib.import_module("execute")
+        path = self.root / ".research/executions/EXEC-1.json"
+        original = path.read_bytes()
+        changed = json.loads(original); changed["command"] = ["python", "different.py"]
+        write(self.root, ".research/executions/EXEC-1.json", changed); commit(self.root)
+        path.write_bytes(original); commit(self.root)
+        result = execution.check_execution_specs(self.root)
+        self.assertEqual(result.status, "FAIL", result.lines)
+        self.assertTrue(any("history" in line for line in result.lines), result.lines)
+
+    def test_unregistered_fit_cannot_expose_a_confirmatory_result(self):
+        path = self.root / "RESEARCH.map"
+        path.write_text(path.read_text().replace("Registration: test://registered", "Registration: none"))
+        commit(self.root)
+        request = self.request("FIT_CONFIRMATORY", "H1"); request["registration"] = "none"
+        result = supervise.run(self.root, request)
+        self.assertNotEqual(result["disposition"], "ALLOW", result)
+        self.assertFalse((self.root / "aggregates/r1.txt").exists())
 
 
 if __name__ == "__main__":

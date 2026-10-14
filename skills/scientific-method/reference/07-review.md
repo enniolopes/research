@@ -7,3 +7,5 @@ The separation is procedural: it prevents the authoring context from silently gr
 Use reporting checklists that are actually applicable to the design/venue rather than hard-coding one checklist into the core. Every material FAIL is fixed or rebutted durably; rerun affected checks. Material manuscript/result changes make the review stale.
 
 Exit when the current material state has a durable separate-context adversarial review and no unresolved material finding is being hidden by an overall verdict.
+
+In supervised projects, follow the corresponding action and role contract in `../../research-map/reference/supervision.md`.

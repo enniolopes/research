@@ -130,6 +130,20 @@ class AssessmentTests(unittest.TestCase):
         self.assertEqual(result.status, "FAIL")
         self.assertTrue(any("changed after first commit" in line for line in result.lines), result.lines)
 
+    def test_restoration_does_not_erase_committed_assessment_mutation(self):
+        path = self.record()
+        git(self.root, "add", "."); git(self.root, "commit", "-m", "assessment")
+        self.assertEqual(assessment.check_assessments(self.root).status, "PASS")
+        original = path.read_bytes()
+        data = json.loads(original); data["basis"] = "Changed judgment after commitment."
+        path.write_text(json.dumps(data) + "\n")
+        git(self.root, "add", "."); git(self.root, "commit", "-m", "mutation")
+        path.write_bytes(original)
+        git(self.root, "add", "."); git(self.root, "commit", "-m", "restoration")
+        result = assessment.check_assessments(self.root)
+        self.assertEqual(result.status, "FAIL", result.lines)
+        self.assertTrue(any("history" in line for line in result.lines), result.lines)
+
 
 if __name__ == "__main__":
     unittest.main()

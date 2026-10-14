@@ -13,11 +13,12 @@ from uuid import uuid4
 import epistemic
 import execute
 import policy
+import validate as structural
 import release
 import review
 from contracts import CORE_RULES, CORE_VERSION, DIRECTORIES, RULES_SHA256, ContractError, canonical, digest, load, loads, schema_files, validate
 from events import ProjectLock, RecoveryRequired, anchor, atomic, begin, check_anchor, event, finish, git_dir, journal, now, runtime, unfinished
-from resources import ancestor, applicability, fingerprint, frozen_bytes, git, head, safe_path
+from resources import ancestor, applicability, committed_unchanged, fingerprint, frozen_bytes, git, head, safe_path
 from supervision_state import Store, check_supervision
 
 CAPABILITIES = {"backend": "cooperative_local_cli", "pre_execution_interception": "cli_only", "blocks_cli_execution": True,
@@ -64,8 +65,14 @@ def fit_checks(store: Store, request: dict) -> list[tuple[str, str]]:
     if not found:
         return [("NOT_VERIFIED", "execution spec not found")]
     spec_path, spec = found
-    spec_result, _ = execute.validate_spec(spec, filename=spec_path.relative_to(root).as_posix())
+    relative_spec = spec_path.relative_to(root).as_posix()
+    spec = load(safe_path(root, relative_spec))
+    spec_result, normalized = execute.validate_spec(spec, filename=relative_spec)
     checks.append((spec_result.status, "; ".join(spec_result.lines) or "execution spec valid"))
+    if spec_result.status == "FAIL" or normalized is None:
+        return checks
+    spec = normalized
+    checks.append(committed_unchanged(root, relative_spec))
     before = execute.changed_paths(root)
     checks.append(("FAIL" if before else "PASS", "execution worktree must be clean" if before else "execution worktree clean"))
     h = request.get("hypothesis")
@@ -89,12 +96,19 @@ def fit_checks(store: Store, request: dict) -> list[tuple[str, str]]:
                 checks.append(("FAIL", "hypothesis not identifiable in frozen protocol"))
         except (OSError, ContractError) as exc:
             checks.append(("NOT_VERIFIED", str(exc)))
-    if not request.get("registration"):
-        checks.append(("NOT_VERIFIED", "registration/disclosed DRY_RUN state required"))
+    registration = request.get("registration", "").strip().lower()
+    if registration in epistemic.EMPTY or registration in ("dry_run", "dry-run"):
+        checks.append(("NOT_VERIFIED", "recorded registration required before confirmatory result exposure; DRY_RUN does not execute"))
     map_path = root / "RESEARCH.map"
     if not map_path.exists():
         checks.append(("NOT_VERIFIED", "RESEARCH.map missing"))
     else:
+        sections, _ = structural.parse_sections(map_path.read_text())
+        match = structural.REGISTRATION.search("\n".join(sections.get("Question", [])))
+        if not match:
+            checks.append(("NOT_VERIFIED", "project registration state missing"))
+        elif request.get("registration") != match.group(1).strip():
+            checks.append(("FAIL", "request registration differs from RESEARCH.map"))
         run_check, runs, _ = epistemic.check_runs(root, map_path)
         if runs or run_check.status == "FAIL":
             checks.append((run_check.status, "; ".join(run_check.lines) or run_check.summary))
