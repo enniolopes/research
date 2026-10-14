@@ -32,4 +32,4 @@ The path check validates operational file pointers in skills, phase references a
 
 A new abstraction, persistent state or host hook needs an observed failure it solves and a check that would reject the failure. Reduce copied procedure before adding new instruction layers. Preserve old empirical records; supersession closes a historical decision without erasing it or treating its retired state as missing evidence. A stale active judgment remains unresolved, and restoring bytes never erases a committed rewrite.
 
-The post-merge audit and its evidence are in [review findings](post-merge-review.md). Native agent adapters and scientific efficacy require their own validation; this topology makes those extensions local without claiming they already work.
+Immutable-history validation performs Git queries proportional to record/history size. Optimize it when measured cost becomes material, preserving mutation detection. Native agent adapters, scientific efficacy and real-agent UX require their own validation; the operational limits live in `../skills/research-map/reference/supervision.md`.

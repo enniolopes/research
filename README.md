@@ -144,7 +144,7 @@ Replay returns `EXACT | DRIFT | ERROR | NOT_VERIFIED`.
 
 The opt-in supervisor adds versioned reference contracts, exact-formulation review manifests, decision admission, irreversible supersession/withdrawal, a derived dependency graph and release checks over actual package bytes. Initialize it in a research project with `python3 <research-map>/scripts/research.py supervise init --root .` and commit its project identity. The orchestrator handles the subsequent controls; drafts and brainstorming remain fluid.
 
-See [ownership and verification](docs/architecture.md), [post-merge review](docs/post-merge-review.md), [operator guide](skills/research-map/reference/supervision.md), [implementation status and limits](docs/implementation-status.md), and [design specification](docs/research-supervisor-spec.md). Control is enforced through the cooperative CLI; native host interception and scientific efficacy remain unverified.
+See [ownership and verification](docs/architecture.md) and the [operator guide and current limits](skills/research-map/reference/supervision.md). Control is enforced through the cooperative CLI; native host interception and scientific efficacy remain unverified.
 
 ## Runtime and development
 
