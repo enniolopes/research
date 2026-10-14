@@ -7,3 +7,5 @@ Re-check current venue, funder, repository, legal/ethical and institutional requ
 Before release, re-check disclosure/privacy on the actual deposited artifacts, record human-owned venue/licence/embargo decisions, and make any required AI-use declaration in the target's current form.
 
 Exit when the released version is identifiable, its evidence/provenance are preserved to the extent permitted, material review is current, disclosure checks pass, and target-specific requirements are satisfied or explicitly `NOT_VERIFIED`.
+
+In supervised projects, follow the corresponding action and role contract in `../../research-map/reference/supervision.md`.

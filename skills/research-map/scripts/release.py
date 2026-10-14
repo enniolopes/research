@@ -4,7 +4,10 @@ from __future__ import annotations
 import review
 from contracts import ContractError, digest
 from resources import fingerprint, frozen_bytes, resolve, safe_path, verify
-from supervision_state import Store
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from supervision_state import Store
 
 
 def evaluate(store: Store, record: dict) -> list[tuple[str, str]]:
@@ -84,12 +87,16 @@ def evaluate(store: Store, record: dict) -> list[tuple[str, str]]:
 
 
 def inspect(root, rid: str) -> dict:
+    from supervision_state import Store
+
     store = Store(root)
     record = store.records.get(rid)
     if not record or record["schema_version"] != "release@1":
         raise ContractError("release manifest not found")
-    checks = evaluate(store, record)
-    state = store.state(rid)[0]
+    state, checks = store.state(rid)
+    checks = [*store.issues, *checks]
+    if state != "CURRENT":
+        checks.append(("NOT_VERIFIED", f"release {rid} is {state}; current consolidation required"))
     return {"id": rid, "state": state, "checks": [{"status": s, "detail": d} for s, d in checks],
             "package": [v.get("path", v.get("source_uri")) for v in record["resources"].values()],
             "effect": "checked", "publishes_externally": False}

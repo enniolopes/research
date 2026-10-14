@@ -376,6 +376,20 @@ class EpistemicTests(unittest.TestCase):
         result, _, _ = epistemic.check_runs(self.root, self.root / "RESEARCH.map")
         self.assertNotEqual(result.status, "FAIL", result.lines)
 
+    def test_restoration_does_not_erase_committed_run_mutation(self):
+        path = self.make_confirmatory_receipt()
+        initial, _, _ = epistemic.check_runs(self.root, self.root / "RESEARCH.map")
+        self.assertEqual(initial.status, "PASS", initial.lines)
+        original = path.read_bytes()
+        data = json.loads(original); data["note"] = "Changed execution record."
+        path.write_text(json.dumps(data) + "\n")
+        git(self.root, "add", "."); git(self.root, "commit", "-m", "mutation")
+        path.write_bytes(original)
+        git(self.root, "add", "."); git(self.root, "commit", "-m", "restoration")
+        result, _, _ = epistemic.check_runs(self.root, self.root / "RESEARCH.map")
+        self.assertEqual(result.status, "FAIL", result.lines)
+        self.assertTrue(any("history" in line for line in result.lines), result.lines)
+
 
 if __name__ == "__main__":
     unittest.main()

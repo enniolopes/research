@@ -10,3 +10,5 @@ Write from committed evidence, not memory.
 - Abstracts/slides/summaries are projections of the same current claims, not independent editions.
 
 Exit when material numbers and claims trace to evidence, figures are reproducible from named artifacts, and interpretation does not exceed the design.
+
+In supervised projects, follow the corresponding action and role contract in `../../research-map/reference/supervision.md`.

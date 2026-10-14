@@ -12,6 +12,17 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 try:
+    from git_integrity import unchanged_history
+except ModuleNotFoundError:
+    _integrity_spec = importlib.util.spec_from_file_location("git_integrity", Path(__file__).with_name("git_integrity.py"))
+    assert _integrity_spec and _integrity_spec.loader
+    _integrity = importlib.util.module_from_spec(_integrity_spec)
+    sys.modules["git_integrity"] = _integrity
+    _integrity_spec.loader.exec_module(_integrity)
+    unchanged_history = _integrity.unchanged_history
+
+
+try:
     import execute as execution
 except ModuleNotFoundError:
     _execution_spec = importlib.util.spec_from_file_location(
@@ -342,6 +353,9 @@ def check_runs(root: Path, map_path: Path) -> tuple[Result, dict[str, dict], dic
         receipt_commit = first_added_commit(root, rel) if have_git else ""
         legacy_execution_receipt = False
         if receipt_commit:
+            history_status, history_detail = unchanged_history(root, rel, receipt_commit)
+            if history_status != "PASS":
+                result.fail(history_detail)
             first_receipt = show(root, receipt_commit, rel)
             current_receipt = path.read_text(encoding="utf-8", errors="replace")
             if first_receipt is None:

@@ -39,3 +39,7 @@ python3 "${CLAUDE_SKILL_DIR}/scripts/graph.py" changed DATA1 RESEARCH.map
 `trace` walks a claim toward executed evidence and planned test. `why` walks prerequisites. `changed` reports candidate downstream consequences after a changed datum/result/assumption; it is navigation, never automatic invalidation.
 
 The current analysis plan is not historical truth for old runs. Historical decisions use the run's recorded freezes and source inspection, not this projection.
+
+## Versioned decision and release view
+
+In supervised projects, use `../research-map/scripts/research.py supervise graph --root <project>` for DEC/REVIEW/REF/REL and versioned resource dependencies; add `--id <node>` for affected candidates. This complements the H/E/T/DATA/RUN/R/C view above. Read `../research-map/reference/supervision.md` for binding semantics. Neither view becomes a source of truth or a scientific verdict.

@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from contracts import ContractError, load
+from git_integrity import unchanged_history
 
 
 def git(root: Path, *args: str) -> bytes:
@@ -101,7 +102,7 @@ def applicability(root: Path, binding: dict, owner: dict, records: dict, now=Non
             current = records.get(binding["current_record"])
             if not current:
                 return "NOT_VERIFIED", "current record missing"
-            if current.get("supersedes"):
+            if any(r.get("supersedes") == binding["current_record"] for r in records.values()):
                 return "STALE", "record replaced; inspect successor"
             path = value.get("path")
         try:
@@ -124,7 +125,9 @@ def committed_unchanged(root: Path, path: str) -> tuple[str, str]:
     try:
         if frozen_bytes(root, initial, path) != safe_path(root, path).read_bytes():
             return "FAIL", f"record rewritten after first commit: {path}"
-        frozen_bytes(root, head(root), path)
+        status, why = unchanged_history(root, path, initial)
+        if status != "PASS":
+            return status, why
     except (OSError, ContractError) as exc:
         return "FAIL", str(exc)
     return "PASS", initial

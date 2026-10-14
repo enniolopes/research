@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import hashlib
 import json
 import re
@@ -11,6 +12,17 @@ import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
+
+try:
+    from git_integrity import unchanged_history
+except ModuleNotFoundError:
+    _integrity_spec = importlib.util.spec_from_file_location("git_integrity", Path(__file__).with_name("git_integrity.py"))
+    assert _integrity_spec and _integrity_spec.loader
+    _integrity = importlib.util.module_from_spec(_integrity_spec)
+    sys.modules["git_integrity"] = _integrity
+    _integrity_spec.loader.exec_module(_integrity)
+    unchanged_history = _integrity.unchanged_history
+
 
 ASSESSMENT_ID = re.compile(r"ASMT-\d+")
 SHA256 = re.compile(r"[0-9a-f]{64}")
@@ -163,6 +175,9 @@ def check_assessments(root: Path) -> Result:
                     f"{relative}: assessment is not yet committed; append-only check NOT_VERIFIED"
                 )
             else:
+                history_status, history_detail = unchanged_history(root, relative, committed)
+                if history_status != "PASS":
+                    result.fail(history_detail)
                 original = show(root, committed, relative)
                 if original is None:
                     result.fail(
