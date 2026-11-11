@@ -20,6 +20,16 @@ class InstructionTopologyTests(unittest.TestCase):
                 with self.subTest(surface=surface.relative_to(ROOT), target=target):
                     self.assertTrue((base / target).is_file(), f"unreachable instruction: {target}")
 
+    def test_frontmatter_plain_scalars_are_valid_yaml(self):
+        # Hosts parse SKILL/agent frontmatter as YAML: an unquoted value containing ": " or " #" breaks loading.
+        for surface in list((ROOT / "skills").glob("*/SKILL.md")) + list((ROOT / "agents").glob("*.md")):
+            frontmatter = surface.read_text().split("---\n")[1]
+            for key, value in re.findall(r"^([\w-]+):[ \t]+(.+)$", frontmatter, re.M):
+                if value[0] in "'\"|>[{":
+                    continue
+                with self.subTest(surface=surface.relative_to(ROOT), key=key):
+                    self.assertNotRegex(value, r": |:$| #", "quote this frontmatter value")
+
     def test_runtime_contracts_do_not_import_orchestration(self):
         import ast
         low_level = ["contracts.py", "git_integrity.py", "resources.py", "events.py", "review.py", "decision_graph.py"]

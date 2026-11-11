@@ -1,6 +1,6 @@
 ---
 name: scientific-method
-description: Orchestrate observational quantitative research as an epistemic control system: formulate and test the problem first, explore before commitment, freeze consequential choices before result exposure, execute against identified evidence, require claim lineage, and challenge material claims in a separate review context. This is the single public entry point; it delegates exploration, statistical planning, memory, graph lineage and review internally.
+description: "Orchestrate observational quantitative research as an epistemic control system: formulate and test the problem first, explore before commitment, freeze consequential choices before result exposure, execute against identified evidence, require claim lineage, and challenge material claims in a separate review context. This is the single public entry point; it delegates exploration, statistical planning, memory, graph lineage and review internally."
 when_to_use: Use to start or continue a research, check status, review a manuscript, and before fitting a model, changing a frozen plan, citing a source, reporting a material result, writing a claim or publishing. Also use when a new hypothesis or method appears after data exposure or protocol freeze.
 license: CC-BY-NC-4.0
 metadata:
