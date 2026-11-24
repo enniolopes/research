@@ -33,6 +33,8 @@ The path check validates operational file pointers in skills, phase references a
 
 ## Evolution criterion
 
+The [study view pilot](study-view-pilot.md) compares source navigation and addressable rationales on held-out revision decisions. It specifies the proposed scientific benefit and maintenance cost required for expansion.
+
 A new abstraction, persistent state or host hook needs an observed failure it solves and a check that would reject the failure. Reduce copied procedure before adding new instruction layers. Preserve old empirical records; supersession closes a historical decision without erasing it or treating its retired state as missing evidence. A stale active judgment remains unresolved, and restoring bytes never erases a committed rewrite.
 
 Immutable-history validation performs Git queries proportional to record/history size. Optimize it when measured cost becomes material, preserving mutation detection. Native agent adapters, scientific efficacy and real-agent UX require their own validation; the operational limits live in `../skills/research-map/reference/supervision.md`.
