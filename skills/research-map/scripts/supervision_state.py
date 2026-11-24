@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 
 import epistemic
@@ -28,7 +29,8 @@ class Result:
 
 
 class Store:
-    def __init__(self, root: Path):
+    def __init__(self, root: Path, *, as_of: datetime | None = None):
+        self.as_of = as_of
         self.root = root.resolve()
         self.records: dict[str, dict] = {}
         self.paths: dict[str, str] = {}
@@ -179,8 +181,7 @@ class Store:
                 if action not in c["applies_to"] or c["materiality"] == "advisory":
                     continue
                 if c.get("refresh_at"):
-                    from datetime import datetime, timezone
-                    if datetime.now(timezone.utc) >= datetime.fromisoformat(c["refresh_at"].replace("Z", "+00:00")):
+                    if (self.as_of or datetime.now(timezone.utc)) >= datetime.fromisoformat(c["refresh_at"].replace("Z", "+00:00")):
                         results.append(("NOT_VERIFIED", f"criterion requires renewed inspection: {rid}#{c['id']}"))
                 key = rid + "#" + c["id"]
                 if key not in (covered or set()):
@@ -212,7 +213,7 @@ class Store:
         results = []
         target = record["target"]
         target_binding = {k: v for k, v in target.items() if k in ("resource_ref", "binding", "current_path", "current_record", "refresh_rule", "refresh_at")}
-        results.append(applicability(self.root, target_binding, record, self.records))
+        results.append(applicability(self.root, target_binding, record, self.records, self.as_of))
         tr = resolve(target["resource_ref"], record, self.records)
         if tr["kind"] != "restricted_external":
             text = frozen_bytes(self.root, tr["revision"], tr["path"]).decode(errors="replace")
@@ -223,7 +224,7 @@ class Store:
         for route in record["basis"]["routes"]:
             for binding in route["all_of"]:
                 value = resolve(binding["resource_ref"], record, self.records)
-                results.append(applicability(self.root, binding, record, self.records))
+                results.append(applicability(self.root, binding, record, self.records, self.as_of))
                 has_evidence |= value["kind"] in ("result", "source", "restricted_external")
                 results.extend(self.scientific_result(value, target.get("decides")))
         if record["disposition"] in ("adopt", "narrow", "retain") and not has_evidence:
@@ -289,7 +290,7 @@ class Store:
             return ("WITHDRAWN" if successor.get("disposition") == "withdraw" else "SUPERSEDED", [])
         checks = []
         if record["schema_version"] == "review@1":
-            checks = review.evaluate(self.root, record, self.records, self.committed, self.paths[rid], require_adequacy=False)
+            checks = review.evaluate(self.root, record, self.records, self.committed, self.paths[rid], require_adequacy=False, as_of=self.as_of)
         elif record["schema_version"] == "decision@1":
             checks = self.decision_checks(record, (*stack, rid))
         elif record["schema_version"] == "references@1":

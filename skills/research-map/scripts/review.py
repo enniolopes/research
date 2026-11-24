@@ -50,7 +50,7 @@ def consistency(record: dict) -> list[str]:
     return issues
 
 
-def evaluate(root, record: dict, records: dict, committed: set[str], path=None, require_adequacy=True, stack=()) -> list[tuple[str, str]]:
+def evaluate(root, record: dict, records: dict, committed: set[str], path=None, require_adequacy=True, stack=(), *, as_of=None) -> list[tuple[str, str]]:
     if record["id"] in stack:
         return [("FAIL", "review resolution dependency cycle")]
     stack = (*stack, record["id"])
@@ -60,7 +60,7 @@ def evaluate(root, record: dict, records: dict, committed: set[str], path=None, 
         if value.get("revision") and not ancestor(root, value["revision"], record["reviewed_commit"]):
             results.append(("FAIL", "review resource is newer than reviewed snapshot"))
     for binding in record["dependencies"]:
-        results.append(applicability(root, binding, record, records))
+        results.append(applicability(root, binding, record, records, as_of))
     for item in record["coverage"]["documents"]:
         results.append(verify(root, resolve(item, record, records)))
     for claim in record["claims"]:
@@ -100,7 +100,7 @@ def evaluate(root, record: dict, records: dict, committed: set[str], path=None, 
                 results.append(("NOT_VERIFIED", "resolution requires a different committed review"))
             else:
                 results.extend(evaluate(root, resolved, records, committed,
-                                        path=f".research/reviews/{rid}.json", stack=stack))
+                                        path=f".research/reviews/{rid}.json", stack=stack, as_of=as_of))
                 if resolved["verdict"] != "PASS" or not any(x["id"] == fid and x["result"] == "adequate" for x in resolved["claims"]):
                     results.append(("NOT_VERIFIED", "resolution not covered by adequate reviewed finding/claim"))
     if require_adequacy and record["verdict"] != "PASS":
