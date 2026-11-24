@@ -204,6 +204,9 @@ class DocumentTests(unittest.TestCase):
             ("## Private conclusion\nAUTHOR CANARY from `private.csv`.", "Quoted AUTHOR CANARY"),
             ("## Private conclusion\nAUTHOR CANARY <!-- claim:C876 result:R876 -->", "Quoted AUTHOR CANARY"),
             ("## Private conclusion\nAUTHOR CANARY from [source][t].\n\n[t]: private.csv", "Quoted AUTHOR CANARY"),
+            ("## Private conclusion\nAUTHOR CANARY from [source][table   data].\n"
+             "[TABLE data]: private.csv\n[table data]: article.md", "Quoted AUTHOR CANARY"),
+            ("## Appendix\n```text\nClosed example: [table](private.csv)\n```", "Copied REVIEW CANARY"),
             ("", "## Private review\nREVIEW CANARY. See [table](private.csv)"),
         ]
         for passage, quote in cases:

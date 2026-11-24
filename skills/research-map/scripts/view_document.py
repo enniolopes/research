@@ -105,7 +105,8 @@ def visible_lines(reader, source, lines):
                                    if (m := FIELD.match(line)) and field_kind(m[1].strip("*_ "))])
     for index, line in enumerate(lines):
         if definition := REFERENCE_LINK.match(line):
-            definitions[definition[1].casefold()] = definition[2] or definition[3]
+            label = " ".join(definition[1].split()).casefold()
+            definitions.setdefault(label, []).append(definition[2] or definition[3])
             boundaries.update((index, index + 1))
 
     ordered = sorted(boundaries)
@@ -117,8 +118,9 @@ def visible_lines(reader, source, lines):
         # A standalone document supplies no native receipt or verified result origin.
         unresolved = bool(roots and CLAIM.search(text))
         targets = [(m[1] or m[2], [source.path.parent]) for m in INLINE_LINK.finditer(text)]
-        targets.extend((definitions[label.casefold()], [source.path.parent])
-                       for label in re.findall(r"\[([^\]\n]+)\]", text) if label.casefold() in definitions)
+        for label in re.findall(r"\[([^\]]+)\]", text):
+            key = " ".join(label.split()).casefold()
+            targets.extend((target, [source.path.parent]) for target in definitions.get(key, ()))
         targets.extend((name, roots or [source.path.parent]) for name in pointers_in(block))
         for target, bases in targets:
             try:
@@ -225,7 +227,8 @@ def collect(reader, document, review=None):
     lines = source.lines()
     withheld = False
     if lines is not None:
-        lines, withheld = visible_lines(reader, source, list(prose_lines(lines)))
+        cleared, withheld = visible_lines(reader, source, lines)
+        lines = [line if allowed else "" for line, allowed in zip(prose_lines(lines), cleared)]
     if lines is None or not any(line.strip() for line in lines):
         reader.partial("Document text is unavailable; inspect the source for locators and passages.")
     else:
