@@ -13,6 +13,8 @@ Research has one public interaction (`scientific-method`) and two different form
 | Bounded review applicability and package eligibility | `review.py`, `release.py` | Evaluate exact supplied evidence/coverage; ask a real reviewer for semantics |
 | Command execution and admission orchestration | `supervise.py`, public `research.py` dispatcher | Compose existing checks and domain evaluators; emit truthful effects |
 | Historical analytic and versioned decision navigation | `research-graph/scripts/graph.py`, `decision_graph.py` | Derive the appropriate view from authoritative records; report candidate consequences |
+| Research state, explanations and impact | `research.py view`, `view.py` and the native, supervised and document readers in `skills/research-map/scripts/` | Query a study or manuscript locally. Each occurrence has a selector bound to its source and version. |
+| Read consistency and model-facing output | `view_reader.py` and the study's capability policy | Observe eligible inputs and directory membership, evaluate each attempt at one instant, recheck observations and retry once on change. |
 
 The same history predicate checks typed records and legacy RUN/EXEC/ASMT; restoration cannot hide committed mutation. Standalone import fallbacks preserve the existing script-loading interfaces.
 
@@ -24,6 +26,7 @@ Scientific review and engineering verification have different owners. `reviewer-
 
 - Contract/effect/applicability/admission changes: `python -m unittest discover -s tests -p test_supervision.py -v`.
 - Instruction navigation or dependency direction: `python -m unittest discover -s tests -p test_instruction_topology.py -v`.
+- Study views, restart, exposure and decision revision: `python -m unittest discover -s tests -p 'test_view*.py' -v`.
 - Existing provenance/replay/legacy graph: their focused test files, then the full suite used by CI.
 
 The path check validates operational file pointers in skills, phase references and agents against the installed layout. It does not judge natural-language instructions or model compliance. The dependency check keeps schema, byte verification, journal, review and graph primitives from importing orchestration. Do not replace scientific checks with these structural checks.

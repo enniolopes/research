@@ -7,6 +7,17 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class InstructionTopologyTests(unittest.TestCase):
+    def test_status_dispatches_directly_to_model_view_in_both_skills(self):
+        public = (ROOT / "skills/scientific-method/SKILL.md").read_text()
+        operational = (ROOT / "skills/research-map/SKILL.md").read_text()
+        for instructions in (public, operational):
+            with self.subTest(skill=instructions.splitlines()[1]):
+                status = re.search(r"^- `status`[^\n]*", instructions, re.M)
+                self.assertIsNotNone(status)
+                self.assertRegex(status.group(), r"view status\b[^`\n]*--audience model\b")
+                self.assertNotRegex(status.group(), r"resume and validate|validate_all|supervise resume")
+                self.assertNotIn("before the first research action", instructions.lower())
+
     def test_phase_and_skill_reference_paths_resolve(self):
         surfaces = list((ROOT / "skills").glob("*/SKILL.md"))
         surfaces += list((ROOT / "skills/scientific-method/reference").glob("*.md"))
