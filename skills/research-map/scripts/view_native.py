@@ -290,7 +290,8 @@ def frozen_hypothesis(reader, root, freeze, hypothesis):
     if not reader.permits(root / name):
         reader.partial("A frozen plan is unavailable for this destination.")
         return None
-    options = ("--no-replace-objects", "--no-lazy-fetch")
+    # The dispatcher also disables lazy fetch and all transports for the whole query.
+    options = ("--no-replace-objects", "-c", "protocol.allow=never")
     try:
         if Path(git(root, *options, "rev-parse", "--show-toplevel").decode().strip()).resolve() != root.resolve():
             raise ValueError("study is not the repository root")

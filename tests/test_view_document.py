@@ -191,6 +191,35 @@ class DocumentTests(unittest.TestCase):
         entries = view_document.collect(PolicyReader("model"), manuscript, report)
         self.assertNotIn("UNKNOWN CANARY", repr(entries))
 
+    def test_model_formats_withhold_restricted_citations_and_their_copied_review(self):
+        (self.root / ".research").mkdir()
+        policy = {"version": 1, "resources": [{"match": path.name, "class": "public"}
+                  for path in (self.doc, self.review)] + [{"match": "private.csv", "class": "restricted"}],
+                  "rules": {"public": {"model_egress": True, "network_egress": False},
+                            "restricted": {"model_egress": False, "network_egress": False}}}
+        (self.root / ".research/policy.json").write_text(json.dumps(policy))
+        cli = Path(view_document.__file__).with_name("research.py")
+        cases = [
+            ("## Private conclusion\nAUTHOR CANARY from [table](private.csv).", "Quoted AUTHOR CANARY"),
+            ("## Private conclusion\nAUTHOR CANARY from `private.csv`.", "Quoted AUTHOR CANARY"),
+            ("## Private conclusion\nAUTHOR CANARY <!-- claim:C876 result:R876 -->", "Quoted AUTHOR CANARY"),
+            ("## Private conclusion\nAUTHOR CANARY from [source][t].\n\n[t]: private.csv", "Quoted AUTHOR CANARY"),
+            ("", "## Private review\nREVIEW CANARY. See [table](private.csv)"),
+        ]
+        for passage, quote in cases:
+            self.doc.write_text("# Question\nPUBLIC QUESTION\n" + passage)
+            digest = hashlib.sha256(self.doc.read_bytes()).hexdigest()
+            self.review.write_text(f"Document-SHA256: {digest}\n{quote}\n")
+            for fmt in ("json", "markdown"):
+                with self.subTest(passage=passage, quote=quote, format=fmt):
+                    answer = subprocess.run([sys.executable, str(cli), "view", "status", "--audience", "model",
+                                             "--document", str(self.doc), "--review", str(self.review),
+                                             "--format", fmt], capture_output=True, text=True)
+                    self.assertEqual(answer.returncode, 0, answer.stderr)
+                    self.assertIn("PUBLIC QUESTION", answer.stdout)
+                    for secret in ("CANARY", "private.csv", "Private conclusion", "Private review", "C876", "R876"):
+                        self.assertNotIn(secret, answer.stdout + answer.stderr, secret)
+
 
 if __name__ == "__main__":
     unittest.main()

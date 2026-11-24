@@ -131,6 +131,10 @@ class Reader:
             path = path / ".view-scope"
         return any(True for _ in self._applicable_policies(path))
 
+    def policy_roots(self, path: Path) -> tuple[Path, ...]:
+        """Return governing roots for repository-relative source citations."""
+        return tuple(root for root, _ in self._applicable_policies(Path(path).absolute()))
+
     def permits(self, path: Path) -> bool:
         path = Path(path).absolute()
         if not _plain(path) or ".git" in path.parts:
@@ -217,12 +221,13 @@ class Reader:
         if self._git.setdefault(root, identity) != identity:
             self._changed = True
         directory, revision = identity
+        if directory is None:
+            return None
+        anchor = directory / "research/runtime/anchor.json"
+        self._remember_file(anchor, _file_state(anchor))
         if self.audience == "model" and self.has_policy(root):
             return None
-        if directory:
-            self._visible[("worktree", str(root))] = [str(directory), revision or ""]
-            anchor = directory / "research/runtime/anchor.json"
-            self._remember_file(anchor, _file_state(anchor))
+        self._visible[("worktree", str(root))] = [str(directory), revision or ""]
         return revision
 
     def snapshot_id(self) -> str:

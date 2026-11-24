@@ -107,7 +107,7 @@ class ViewReaderTests(unittest.TestCase):
         self.assertEqual(journal_entries(model, self.root), [])
         self.assertTrue(model.issues)
 
-    def test_model_with_policy_omits_revision_but_checks_head_for_drift(self):
+    def test_model_with_policy_watches_private_head_and_anchor_for_drift(self):
         def git(*args):
             return subprocess.check_output([
                 "git", "-C", str(self.root), "-c", "user.name=Fixture",
@@ -129,6 +129,14 @@ class ViewReaderTests(unittest.TestCase):
         after = Reader("model")
         self.assertIsNone(after.watch_git(self.root))
         self.assertEqual(after.snapshot_id(), before)
+        anchor = self.root / ".git/research/runtime/anchor.json"
+        anchor.parent.mkdir(parents=True)
+        anchor.write_text('{"head": "private"}')
+        self.assertFalse(after.stable())
+        anchored = Reader("model")
+        self.assertIsNone(anchored.watch_git(self.root))
+        self.assertEqual(anchored.snapshot_id(), before)
+        self.assertTrue(anchored.stable())
 
     def test_snapshot_digest_covers_only_visible_files_and_members(self):
         self.policy(True)

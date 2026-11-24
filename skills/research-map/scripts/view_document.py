@@ -10,9 +10,10 @@ import hashlib
 import os
 from pathlib import Path
 import re
+from urllib.parse import unquote, urlsplit
 
 from epistemic import CLAIM
-from validate import slug
+from validate import pointers_in, slug
 
 
 HEADING = re.compile(r"^ {0,3}#{1,6}\s+(.+?)(?:\s+#+)?\s*$")
@@ -20,6 +21,9 @@ ANCHOR = re.compile(r"\s+\{#([\w.-]+)\}\s*$")
 FIELD = re.compile(r"^\s*(?:[-*]\s+)?([^:]{1,60}):(.*)$")
 BINDING = re.compile(r"Document-SHA256:\s*([0-9a-f]{64})", re.I)
 PAGE = re.compile(r"^\s*(?:[-*]\s+)?(?:Page|Página|p\.)\s+(\d+)\s*[:—–-]", re.I)
+DESTINATION = r"(?:<([^>\n]+)>|([^\s)>]+))"
+INLINE_LINK = re.compile(r"\]\(\s*" + DESTINATION)
+REFERENCE_LINK = re.compile(r"^ {0,3}\[([^\]]+)\]:\s*" + DESTINATION)
 LABELS = {
     "question": ("research question", "question", "questão", "pergunta", "pergunta de pesquisa"),
     "claim": ("claim", "conclusion", "conclusions", "afirmação", "conclusão", "conclusões"),
@@ -43,6 +47,7 @@ def field_kind(label):
 
 class Source:
     def __init__(self, path, content, namespace):
+        self.path = path
         self.name = path.name
         self.version = hashlib.sha256(content).hexdigest()
         origin = hashlib.sha256(os.fsencode(path.absolute())).hexdigest()
@@ -86,6 +91,51 @@ def prose_lines(lines):
             yield ""
             continue
         yield "" if fence else line
+
+
+def visible_lines(reader, source, lines):
+    """Clear recognized citation origins before deriving labels, excerpts or page aliases."""
+    if reader.audience != "model" or not lines:
+        return lines, False
+    roots = reader.policy_roots(source.path)
+    definitions = {}
+    boundaries = {0, len(lines)}
+    headings = [i for i, line in enumerate(lines) if HEADING.match(line)]
+    boundaries.update(headings or [i for i, line in enumerate(lines)
+                                   if (m := FIELD.match(line)) and field_kind(m[1].strip("*_ "))])
+    for index, line in enumerate(lines):
+        if definition := REFERENCE_LINK.match(line):
+            definitions[definition[1].casefold()] = definition[2] or definition[3]
+            boundaries.update((index, index + 1))
+
+    ordered = sorted(boundaries)
+    filtered = list(lines)
+    withheld = False
+    for start, end in zip(ordered, ordered[1:]):
+        block = lines[start:end]
+        text = "\n".join(block)
+        # A standalone document supplies no native receipt or verified result origin.
+        unresolved = bool(roots and CLAIM.search(text))
+        targets = [(m[1] or m[2], [source.path.parent]) for m in INLINE_LINK.finditer(text)]
+        targets.extend((definitions[label.casefold()], [source.path.parent])
+                       for label in re.findall(r"\[([^\]\n]+)\]", text) if label.casefold() in definitions)
+        targets.extend((name, roots or [source.path.parent]) for name in pointers_in(block))
+        for target, bases in targets:
+            try:
+                uri = urlsplit(target)
+                if uri.scheme and uri.scheme != "file":
+                    continue
+                path = unquote(uri.path)
+                if path and not all(reader.permits(base / path) for base in bases):
+                    unresolved = True
+            except (OSError, ValueError):
+                unresolved = True
+        if unresolved:
+            filtered[start:end] = [""] * (end - start)
+            withheld = True
+    if withheld:
+        reader.partial("Documentary material with unresolved or restricted origins was withheld.")
+    return filtered, withheld
 
 
 def document_entries(source, lines):
@@ -149,10 +199,11 @@ def review_entry(reader, report, document):
         reader.partial("Review excerpts were withheld because their document version could not be established.")
         return None
     start = first + 1 if digest else first
-    body = "\n".join(lines[start:]).strip()
+    cleared, _ = visible_lines(reader, report, lines[start:])
+    body = "\n".join(cleared).strip()
     if not body:
         reader.partial("The review provides no assessment text.")
-    pages = list(dict.fromkeys(match[1] for line in lines[start:] if (match := PAGE.match(line))))
+    pages = list(dict.fromkeys(match[1] for line in cleared if (match := PAGE.match(line))))
     aliases = [report.name]
     if binding == "matched":
         aliases.extend(f"{document.name}#page={page}" for page in pages)
@@ -172,8 +223,9 @@ def collect(reader, document, review=None):
                         basis="supplied document bytes")
     entries = [item]
     lines = source.lines()
+    withheld = False
     if lines is not None:
-        lines = list(prose_lines(lines))
+        lines, withheld = visible_lines(reader, source, list(prose_lines(lines)))
     if lines is None or not any(line.strip() for line in lines):
         reader.partial("Document text is unavailable; inspect the source for locators and passages.")
     else:
@@ -184,6 +236,10 @@ def collect(reader, document, review=None):
             item["text"] = "\n".join(lines).strip()
     if review is None:
         item["details"]["review"] = "No separate review supplied."
+        return entries
+    if withheld:
+        # A report about this manuscript can quote a withheld passage without repeating its citation.
+        reader.partial("The supplied review may quote withheld manuscript material.")
         return entries
     review = Path(review)
     report = read_source(reader, review, "review")

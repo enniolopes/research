@@ -5,11 +5,11 @@ from dataclasses import dataclass
 from glob import escape
 from pathlib import Path
 
+import view_native
 from contracts import ContractError, DIRECTORIES, digest, loads, validate
 from events import RecoveryRequired
 from resources import applicability, fingerprint, resolve, safe_path
 from supervision_state import Store
-import view_native
 
 
 def _entry(selector, kind, label, source, *, aliases=(), text=None, **details):
@@ -114,6 +114,9 @@ def _watch_record(reader, root, record, records, controlled):
             if not reader.permits(path) or path not in reader.watch_dir(path.parent, escape(path.name)) or not path.is_file():
                 raise PermissionError
     for resource in record.get("resources", {}).values():
+        if controlled and resource["kind"] == "result":
+            # A public result descriptor alone cannot authorize its historical run inputs.
+            raise PermissionError
         if resource["kind"] == "restricted_external":
             if controlled:
                 raise PermissionError
@@ -181,7 +184,7 @@ def _inventory(reader, root):
         except (ContractError, OSError, KeyError, ValueError):
             del visible[rid]
             incomplete = True
-    if incomplete:
+    if incomplete or controlled:
         # Propagate omission through reviewers, referenced resources, authorities and successors.
         # Compute the fixed point before exposing any copied judgment or reason.
         while True:
@@ -189,8 +192,10 @@ def _inventory(reader, root):
                        if _record_dependencies(record) - visible.keys()]
             if not missing:
                 break
+            incomplete = True
             for rid in missing:
                 del visible[rid]
+    if incomplete:
         reader.partial("Some supervised records or their evidence could not be inspected. Current authority is unverified.")
         return ReadableRecords(root, project, visible, paths)
     if check_runs:
@@ -200,6 +205,7 @@ def _inventory(reader, root):
 
 def _project(reader, store):
     project_id = store.project["project_id"]
+    controlled = reader.audience == "model" and reader.has_policy(store.root / ".research/project.json")
     entries = {}
     by_record = {}
 
@@ -219,7 +225,8 @@ def _project(reader, store):
                 state = "NOT_VERIFIED"
         entries[selector] = _entry(selector, kind, rid, source, aliases=[rid],
                                    state=state, revision=revision,
-                                   checks=[{"status": s, "reason": t} for s, t in checks if s != "PASS"])
+                                   checks=[{"status": s, "reason": "Inspect the source record locally." if controlled else t}
+                                           for s, t in checks if s != "PASS"])
 
     def resource_selector(ref, record):
         descriptor = resolve(ref, record, store.records)
@@ -259,7 +266,8 @@ def _project(reader, store):
                            judgments=record["judgments"], limits=record["limits"],
                            revision_conditions=record["revision_conditions"], disposition=record["disposition"],
                            supersedes=record["supersedes"], predecessor=by_record.get(record["supersedes"]),
-                           declared_origins=record["basis"]["origin_refs"], support_routes=[])
+                           declared_origins=record["basis"]["origin_refs"], support_routes=[],
+                           route_scope="Route states describe the applicability of all recorded resource bindings.")
             for pointer in record["judgments"]:
                 review_id = pointer.split("#", 1)[0]
                 if review_id in by_record:
@@ -277,6 +285,8 @@ def _project(reader, store):
                         status, why = "NOT_VERIFIED", "Only recorded support is available in this partial inspection."
                     else:
                         status, why = applicability(store.root, binding, record, store.records, reader.as_of)
+                        if controlled and status != "PASS":
+                            why = "The recorded binding requires inspection."
                     dependencies.append({"selector": resource, "binding": binding["binding"],
                                          "status": status, "reason": why})
                     edge(resource, route_id)
@@ -286,7 +296,7 @@ def _project(reader, store):
                 route_node["details"]["status"] = status
                 details["support_routes"].append({"selector": route_id, "id": route["id"], "status": status})
             if len(record["basis"]["routes"]) > 1:
-                details["route_scope"] = "Alternative routes require scientific review of surviving support and shared origins."
+                details["route_scope"] += " Alternative routes require scientific review of surviving support and shared origins."
         elif kind == "review":
             details.update(verdict=record["verdict"], reviewed_commit=record["reviewed_commit"],
                            reviewer=record["reviewer"]["identity"], findings=record["findings"],
