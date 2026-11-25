@@ -8,8 +8,16 @@ from pathlib import Path
 import epistemic
 import review
 from contracts import ContractError, DIRECTORIES, load, validate
-from events import RecoveryRequired, check_anchor
+from events import RecoveryRequired, check_anchor, inquiry_completion
 from resources import applicability, ancestor, committed_unchanged, fingerprint, first_commit, frozen_bytes, git, resolve, verify
+
+PLANNING_DIRECTORIES = {schema: DIRECTORIES[schema] for schema in ("inquiry@1", "event@1")}
+
+
+def planning_record(record):
+    if record["schema_version"] == "inquiry@1":
+        return record["stage"] == "planning"
+    return bool(inquiry_completion(record))
 
 
 @dataclass
@@ -44,7 +52,7 @@ class Store:
             status, why = committed_unchanged(root, ".research/project.json")
             if status != "PASS":
                 self.issues.append((status, why))
-        directories = {"inquiry@1": DIRECTORIES["inquiry@1"]} if planning_only else DIRECTORIES
+        directories = PLANNING_DIRECTORIES if planning_only else DIRECTORIES
         for schema, directory in directories.items():
             for path in sorted((root / ".research" / directory).glob("*.json")):
                 relative = path.relative_to(root).as_posix()
@@ -55,8 +63,9 @@ class Store:
                         raise ContractError(f"{relative}: filename/schema/ID mismatch")
                     if not self.project or data["project_id"] != self.project["project_id"]:
                         raise ContractError(f"{relative}: project identity mismatch")
-                    if planning_only and data["stage"] != "planning":
-                        self.issues.append(("NOT_VERIFIED", "Later inquiry assessments are outside the planning view."))
+                    if planning_only and not planning_record(data):
+                        if schema == "inquiry@1":
+                            self.issues.append(("NOT_VERIFIED", "Later inquiry assessments are outside the planning view."))
                         continue
                     if data["id"] in self.records:
                         raise ContractError("duplicate record ID")

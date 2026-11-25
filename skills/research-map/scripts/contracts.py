@@ -171,6 +171,8 @@ RULES_SHA256 = digest({"version": CORE_VERSION, "rules": CORE_RULES, "schemas": 
 QUESTION_ID = string(r"^Q[1-9][0-9]*$")
 INQUIRY_ID = string(r"^INQ-[1-9][0-9]*$")
 DECISION_ID = string(r"^DEC-[1-9][0-9]*$")
+INQUIRY_LINK = obj({"id": INQUIRY_ID, "sha256": SHA, "criterion": S})
+CONFIRMATORY_STEP = obj({"execution_id": string(r"^EXEC-[1-9][0-9]*$"), "hypothesis": string(r"^H[0-9]+$")})
 # Inquiry records guide work. The existing supervision fingerprint still governs
 # executions and admissions, whose contracts and rules retain their meaning.
 SCHEMAS["inquiry@1"] = obj({
@@ -187,7 +189,7 @@ SCHEMAS["inquiry@1"] = obj({
     "next_action": {"oneOf": [{"type": "null"}, obj({
         "criterion": S, "kind": string(enum=["investigate", "seek_review", "decide_scope"]),
         "action": S, "expected_signal": S,
-    })]},
+    }, {"confirmatory": CONFIRMATORY_STEP})]},
     "observation": {"oneOf": [{"type": "null"}, obj({"text": S, "resource_ref": REF})]},
 })
 DIRECTORIES = {"references@1": "references", "decision@1": "decisions", "review@1": "reviews",
@@ -276,6 +278,10 @@ def validate(data: dict) -> None:
             binding_errors(binding, errors)
     if version == "inquiry@1":
         inquiry_errors(data, errors)
+    if version in ("action@1", "event@1") and "inquiry" in data.get("extensions", {}):
+        check(data["extensions"]["inquiry"], INQUIRY_LINK, "$.extensions.inquiry", errors)
+        if data.get("action") != "FIT_CONFIRMATORY" and data.get("type") != "EXECUTION_COMPLETED":
+            errors.append("inquiry links identify confirmatory execution requests and completion events")
     if errors:
         raise ContractError("; ".join(errors))
 
@@ -294,6 +300,8 @@ def inquiry_errors(record, errors):
     action = record["next_action"]
     if (pending and (not action or action["criterion"] not in pending)) or (not pending and action):
         errors.append("next action must address a recorded pending criterion")
+    if action and action.get("confirmatory") and action["kind"] != "investigate":
+        errors.append("only an investigation can name a confirmatory execution")
     observation = record["observation"]
     if observation and all(observation["resource_ref"] != b["resource_ref"] for b in record["dependencies"]):
         errors.append("observation must identify a declared dependency")
@@ -307,6 +315,16 @@ def inquiry_errors(record, errors):
                         and c["assessment"] == "met") for c in criteria)
         if observation or empirical or any(r["kind"] == "result" for r in record["resources"].values()):
             errors.append("planning records can register commitments before empirical judgments")
+
+
+def inquiry_link(data):
+    """Read the optional link from a confirmatory request or its completion event."""
+    extensions = data.get("extensions")
+    return extensions.get("inquiry") if isinstance(extensions, dict) else None
+
+
+def inquiry_step_binding(record, sha256):
+    return {"id": record["id"], "sha256": sha256, "criterion": record["next_action"]["criterion"]}
 
 
 def schema_files() -> dict[str, dict]:

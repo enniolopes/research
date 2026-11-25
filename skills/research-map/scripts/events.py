@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
-from contracts import ContractError, canonical, digest, load
+from contracts import ContractError, canonical, digest, inquiry_link, load
 from resources import ancestor, git, head
 
 
@@ -119,3 +119,29 @@ def event(project_id: str, operation_id: str, kind: str, subject: str, members=N
 def unfinished(root: Path) -> list[str]:
     directory = runtime(root)
     return [str(p.parent.name) for p in directory.glob("*/operation.json") if load(p).get("result") is None]
+
+
+def inquiry_attempt(root: Path, project_id: str, binding: dict) -> bool:
+    """The caller holds the project lock when rechecking before execution."""
+    common = git_dir(root, True)
+    directories = {runtime(root), common / "research/runtime"}
+    directories.update(p / "research/runtime" for p in (common / "worktrees").glob("*") if p.is_dir())
+    for directory in sorted(directories):
+        for path in directory.glob("*/operation.json"):
+            entry = load(path)
+            request = entry.get("request")
+            if not isinstance(request, dict):
+                raise RecoveryRequired("Malformed operation journal. Inspect recovery before retrying a linked inquiry.")
+            if (request.get("project_id") == project_id and request.get("action") == "FIT_CONFIRMATORY"
+                    and inquiry_link(request) == binding):
+                if entry.get("request_sha256") != digest(request):
+                    raise RecoveryRequired("Linked execution journal changed. Inspect its original request before retrying.")
+                return True
+    return False
+
+
+def inquiry_completion(record: dict):
+    if (record.get("schema_version") == "event@1" and record["type"] == "EXECUTION_COMPLETED"
+            and record["observation"] == "instrumented" and record["origin"] == "research-cli"):
+        return inquiry_link(record)
+    return None

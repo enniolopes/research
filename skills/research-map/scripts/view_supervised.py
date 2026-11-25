@@ -7,10 +7,10 @@ from pathlib import Path
 import re
 
 import view_native
-from contracts import ContractError, DIRECTORIES, digest, loads, validate
-from events import RecoveryRequired
+from contracts import ContractError, DIRECTORIES, digest, inquiry_step_binding, loads, validate
+from events import RecoveryRequired, inquiry_completion
 from resources import applicability, fingerprint, resolve, safe_path
-from supervision_state import Store
+from supervision_state import PLANNING_DIRECTORIES, Store, planning_record
 
 
 def _entry(selector, kind, label, source, *, aliases=(), text=None, **details):
@@ -157,9 +157,8 @@ def _inventory(reader, root, planning_only=False):
     records = {}
     paths = {}
     incomplete = False
-    for schema, directory in DIRECTORIES.items():
-        if planning_only and schema != "inquiry@1":
-            continue
+    directories = PLANNING_DIRECTORIES if planning_only else DIRECTORIES
+    for schema, directory in directories.items():
         folder = root / ".research" / directory
         permitted = reader.watch_dir(folder, "*.json")
         if set(folder.glob("*.json")) != set(permitted):
@@ -174,8 +173,9 @@ def _inventory(reader, root, planning_only=False):
             except (ContractError, OSError, ValueError, UnicodeError):
                 incomplete = True
                 continue
-            if planning_only and value["stage"] != "planning":
-                incomplete = True
+            if planning_only and not planning_record(value):
+                if schema == "inquiry@1":
+                    incomplete = True
                 continue
             records[path.stem] = value
             paths[path.stem] = path.relative_to(root).as_posix()
@@ -218,6 +218,8 @@ def _inquiry_details(record, node, by_record, entries):
     recorded_action = record["next_action"]
     if state == "CURRENT":
         next_step = {"state": "proposed", **recorded_action} if recorded_action else {"state": "closed"}
+        if recorded_action and recorded_action.get("confirmatory"):
+            next_step["inquiry_binding"] = inquiry_step_binding(record, node["version"])
     else:
         state_label = {"STALE": "reassess", "SUPERSEDED": "historical"}
         next_step = {"state": state_label.get(state, "verify")}
@@ -229,7 +231,7 @@ def _inquiry_details(record, node, by_record, entries):
     return {"id": record["id"], "question_id": record["question_id"], "question": record["question"],
             "importance": record["importance"], "stage": record["stage"], "assessed_by": record["assessed_by"],
             "criteria": criteria, "recorded_action": recorded_action, "next": next_step,
-            "previous": by_record.get(record["supersedes"])}
+            "previous": by_record.get(record["supersedes"]), "executions": []}
 
 
 def _project(reader, store):
@@ -361,6 +363,18 @@ def _project(reader, store):
             reference_id = pointer.split("#", 1)[0]
             if reference_id in by_record:
                 edge(by_record[reference_id], selector)
+    if isinstance(store, Store):
+        for event_id, record in sorted(store.records.items()):
+            binding = inquiry_completion(record)
+            if not binding or event_id not in store.committed or binding["id"] not in by_record:
+                continue
+            node = entries[by_record[binding["id"]]]
+            action = node["details"]["recorded_action"]
+            if action and node["version"] == binding["sha256"] and action["criterion"] == binding["criterion"]:
+                node["details"]["executions"].append({
+                    "operation_id": record["operation_id"], "state": "executed",
+                    "source": "committed_event", "event_id": event_id,
+                })
     inquiries = {}
     for node in entries.values():
         if node["kind"] == "inquiry" and node["details"]["state"] != "SUPERSEDED":
