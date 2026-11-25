@@ -18,6 +18,8 @@ The reviewer is read-only: supply artifact paths/commit, applicable REF criteria
 
 Resolve mechanical omissions independently, batch related review and interrupt the user only for missing scientific judgment, authority or evidence the agent cannot supply. Report permitted conclusion, decisive evidence, limitation and next useful action; internal JSON stays behind the ordinary research interaction. Do not initialize or migrate an existing project's scientific decisions merely to clear a gate.
 
+When an active inquiry names the hypothesis and frozen execution, include the [versioned inquiry binding](inquiry.md#bind-a-confirmatory-execution) in the `FIT_CONFIRMATORY` request. Use the inquiry's recorded attempt to choose the next step after execution.
+
 ## Operator interface
 
 Use the installed plugin's `skills/research-map/scripts/research.py` as the dispatcher:

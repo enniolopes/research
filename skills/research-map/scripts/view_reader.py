@@ -10,7 +10,7 @@ import json
 import stat
 
 import policy
-from contracts import ContractError
+from contracts import ContractError, INQUIRY_LINK, check, digest, inquiry_link, loads
 from resources import git
 
 
@@ -86,6 +86,7 @@ class Reader:
         self._policies: dict[Path, tuple[str, dict | None]] = {}
         self._changed = False
         self._visible: dict[tuple[str, str], str | list[str]] = {}
+        self.journal_complete = False
 
     def partial(self, message: str) -> None:
         if message not in self.issues:
@@ -249,6 +250,7 @@ class Reader:
 def journal_entries(reader: Reader, root: Path) -> list[dict]:
     """Expose only operation status; argv, request payloads and logs stay local."""
     root = Path(root).absolute()
+    reader.journal_complete = False
     if reader.audience == "model" and reader.has_policy(root):
         reader.partial("Operational journal withheld under study policy.")
         return []
@@ -263,11 +265,12 @@ def journal_entries(reader: Reader, root: Path) -> list[dict]:
     except OSError:
         reader.partial("Operational journal unavailable.")
         return entries
+    complete = True
     for path in files:
         try:
             operation = str(UUID(path.parent.name))
             content = reader._read(path)
-            data = json.loads(content)
+            data = loads(content.decode())
             if not isinstance(data, dict) or data.get("operation_id") != operation:
                 raise ValueError("Invalid journal identity")
             result = data.get("result")
@@ -291,15 +294,26 @@ def journal_entries(reader: Reader, root: Path) -> list[dict]:
                     message = "Execution ended unsuccessfully. Result exposure remains possible."
             else:
                 continue
+            binding = None
+            request = data.get("request")
+            if isinstance(request, dict) and request.get("action") == "FIT_CONFIRMATORY":
+                binding = inquiry_link(request)
+                if binding is not None and (check(binding, INQUIRY_LINK) or data.get("request_sha256") != digest(request)):
+                    raise ValueError("Invalid inquiry binding in operation journal")
         except (ValueError, OSError):
             reader.partial("Operational journal record unreadable.")
+            complete = False
             continue
         version = _digest(content)
         selector = f"operation:{operation}@{version}"
         reader._visible[("journal_state", operation)] = version
-        entries.append({
+        entry = {
             "selector": selector, "kind": "operation", "label": "Research operation",
             "aliases": [operation], "source": "worktree operation journal", "text": message,
             "related": [], "details": {"state": status, "version": version},
-        })
+        }
+        if binding is not None:
+            entry["inquiry_binding"] = binding
+        entries.append(entry)
+    reader.journal_complete = complete
     return entries

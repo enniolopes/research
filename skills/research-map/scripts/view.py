@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 import sys
 
-from contracts import ContractError
+from contracts import ContractError, confirmatory_identity
 from validate import DOC_SUFFIXES
 import view_document
 import view_native
@@ -123,6 +123,43 @@ def select(entries, operation, target):
     return "complete", [selected, *(e for e in entries if e is not selected and e["selector"] in scope)]
 
 
+def link_inquiry_executions(entries, journal_complete):
+    inquiries = {}
+    for entry in entries:
+        if entry["kind"] == "inquiry" and (action := entry["details"]["recorded_action"]):
+            inquiries[entry["label"], entry["version"], action["criterion"]] = entry
+    for entry in entries:
+        binding = entry.pop("inquiry_binding", None)
+        if binding is None:
+            continue
+        inquiry = inquiries.get((binding["id"], binding["sha256"], binding["criterion"]))
+        if not inquiry:
+            continue
+        entry["related"].append(inquiry["selector"])
+        executions = inquiry["details"]["executions"]
+        operation_id = entry["aliases"][0]
+        if not any(execution["operation_id"] == operation_id for execution in executions):
+            executions.append({"operation_id": operation_id, "state": entry["details"]["state"],
+                               "source": "worktree_journal", "selector": entry["selector"]})
+    histories = defaultdict(dict)
+    for entry in inquiries.values():
+        details = entry["details"]
+        analysis = confirmatory_identity(details["recorded_action"].get("confirmatory"))
+        if analysis:
+            histories[analysis].update({e["operation_id"]: e for e in details["executions"]})
+    for entry in inquiries.values():
+        details = entry["details"]
+        analysis = confirmatory_identity(details["recorded_action"].get("confirmatory"))
+        if not analysis or details["next"]["state"] != "proposed":
+            continue
+        if histories.get(analysis):
+            details["executions"] = list(histories[analysis].values())
+            needs_recovery = any(execution["state"] != "executed" for execution in details["executions"])
+            details["next"] = {"state": "recover_execution" if needs_recovery else "inspect_execution"}
+        elif not journal_complete:
+            details["next"] = {"state": "verify_execution"}
+
+
 def query(args):
     for _ in range(2):
         reader = Reader(args.audience)
@@ -143,6 +180,7 @@ def query(args):
             if projects:
                 entries.extend(view_supervised.collect(reader, root, target=args.target))
                 entries.extend(journal_entries(reader, root))
+                link_inquiry_executions(entries, reader.journal_complete)
             if not (maps or projects):
                 reader.partial("No readable study map or supervision records. For a manuscript use --document.")
             if args.target and (args.operation == "impact" or args.target.startswith("study-file:")):
@@ -242,6 +280,9 @@ def inquiry_lines(inquiries):
         "closed": "All recorded criteria are met or have a documented limitation.",
         "reassess": "Reassess the inquiry against the changed evidence before using its recorded action.",
         "verify": "Verify the inquiry and its supporting records before using its recorded action.",
+        "inspect_execution": "Inspect the recorded execution and its outputs before choosing the next action.",
+        "recover_execution": "Inspect the failed or unfinished execution and possible exposure before retrying.",
+        "verify_execution": "Confirm the execution history with an authorized operator before proceeding.",
     }
     for inquiry in inquiries:
         lines.extend(["", f"## {inquiry['question_id']} · {inquiry['question']}", "",
@@ -259,6 +300,8 @@ def inquiry_lines(inquiries):
                           f"**Expected signal** — {step['expected_signal']}"])
         else:
             lines.extend(["", messages[step["state"]]])
+            for execution in inquiry["executions"]:
+                lines.append(f"- {execution['operation_id']} · {execution['state']} · {execution['source']}")
             for check in inquiry["checks"]:
                 lines.append(f"- {check['reason']}")
     return lines
