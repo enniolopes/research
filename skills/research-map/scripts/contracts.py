@@ -327,6 +327,13 @@ def inquiry_step_binding(record, sha256):
     return {"id": record["id"], "sha256": sha256, "criterion": record["next_action"]["criterion"]}
 
 
+def confirmatory_identity(step):
+    """Identify a frozen analysis independently of the round that proposed it."""
+    if step and step.get("hypothesis") and step.get("execution_id"):
+        return step["hypothesis"], step["execution_id"]
+    return None
+
+
 def schema_files() -> dict[str, dict]:
     return {name.replace("@", "-") + ".schema.json": {
         "$schema": "https://json-schema.org/draft/2020-12/schema", "title": name, **schema

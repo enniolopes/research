@@ -8,8 +8,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
-from contracts import ContractError, canonical, digest, inquiry_link, load
-from resources import ancestor, git, head
+from contracts import ContractError, canonical, confirmatory_identity, digest, inquiry_link, load, validate
+from resources import ancestor, git, head, safe_path
 
 
 class RecoveryRequired(ContractError):
@@ -121,7 +121,7 @@ def unfinished(root: Path) -> list[str]:
     return [str(p.parent.name) for p in directory.glob("*/operation.json") if load(p).get("result") is None]
 
 
-def inquiry_attempt(root: Path, project_id: str, binding: dict) -> bool:
+def inquiry_attempt(root: Path, project_id: str, analysis: tuple[str, str]) -> bool:
     """The caller holds the project lock when rechecking before execution."""
     common = git_dir(root, True)
     directories = {runtime(root), common / "research/runtime"}
@@ -133,7 +133,7 @@ def inquiry_attempt(root: Path, project_id: str, binding: dict) -> bool:
             if not isinstance(request, dict):
                 raise RecoveryRequired("Malformed operation journal. Inspect recovery before retrying a linked inquiry.")
             if (request.get("project_id") == project_id and request.get("action") == "FIT_CONFIRMATORY"
-                    and inquiry_link(request) == binding):
+                    and inquiry_link(request) and confirmatory_identity(request) == analysis):
                 if entry.get("request_sha256") != digest(request):
                     raise RecoveryRequired("Linked execution journal changed. Inspect its original request before retrying.")
                 return True
@@ -145,3 +145,32 @@ def inquiry_completion(record: dict):
             and record["observation"] == "instrumented" and record["origin"] == "research-cli"):
         return inquiry_link(record)
     return None
+
+
+def write_execution_events(root: Path, expected: list[dict]) -> list[str]:
+    """Reuse the events of a partially imported execution under the project lock."""
+    operation_id = expected[0]["operation_id"]
+    by_kind = {record["type"]: record for record in expected}
+    existing = {}
+    directory = safe_path(root, ".research/events")
+    for path in sorted(directory.glob("*.json")):
+        record = load(safe_path(root, path.relative_to(root).as_posix()))
+        if record.get("operation_id") != operation_id:
+            continue
+        kind = record.get("type")
+        if not isinstance(kind, str):
+            raise RecoveryRequired("Existing import contains a malformed event type.")
+        if kind not in by_kind:
+            continue
+        validate(record)
+        candidate = by_kind[kind]
+        if (path.stem != record["id"] or kind in existing
+                or record != {**candidate, "id": record["id"], "recorded_at": record["recorded_at"]}):
+            raise RecoveryRequired(f"Conflicting {kind} event for this operation. Inspect the existing import.")
+        existing[kind] = record["id"]
+    for kind, record in by_kind.items():
+        if kind not in existing:
+            validate(record)
+            atomic(directory / (record["id"] + ".json"), record)
+            existing[kind] = record["id"]
+    return [existing[record["type"]] for record in expected]

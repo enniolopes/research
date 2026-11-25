@@ -86,6 +86,7 @@ class Reader:
         self._policies: dict[Path, tuple[str, dict | None]] = {}
         self._changed = False
         self._visible: dict[tuple[str, str], str | list[str]] = {}
+        self.journal_complete = False
 
     def partial(self, message: str) -> None:
         if message not in self.issues:
@@ -249,6 +250,7 @@ class Reader:
 def journal_entries(reader: Reader, root: Path) -> list[dict]:
     """Expose only operation status; argv, request payloads and logs stay local."""
     root = Path(root).absolute()
+    reader.journal_complete = False
     if reader.audience == "model" and reader.has_policy(root):
         reader.partial("Operational journal withheld under study policy.")
         return []
@@ -263,6 +265,7 @@ def journal_entries(reader: Reader, root: Path) -> list[dict]:
     except OSError:
         reader.partial("Operational journal unavailable.")
         return entries
+    complete = True
     for path in files:
         try:
             operation = str(UUID(path.parent.name))
@@ -299,6 +302,7 @@ def journal_entries(reader: Reader, root: Path) -> list[dict]:
                     raise ValueError("Invalid inquiry binding in operation journal")
         except (ValueError, OSError):
             reader.partial("Operational journal record unreadable.")
+            complete = False
             continue
         version = _digest(content)
         selector = f"operation:{operation}@{version}"
@@ -311,4 +315,5 @@ def journal_entries(reader: Reader, root: Path) -> list[dict]:
         if binding is not None:
             entry["inquiry_binding"] = binding
         entries.append(entry)
+    reader.journal_complete = complete
     return entries

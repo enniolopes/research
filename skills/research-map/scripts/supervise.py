@@ -16,8 +16,8 @@ import policy
 import validate as structural
 import release
 import review
-from contracts import CORE_RULES, CORE_VERSION, DIRECTORIES, RULES_SHA256, ContractError, canonical, digest, inquiry_link, inquiry_step_binding, load, loads, schema_files, validate
-from events import ProjectLock, RecoveryRequired, anchor, atomic, begin, check_anchor, event, finish, git_dir, inquiry_attempt, inquiry_completion, journal, now, runtime, unfinished
+from contracts import CORE_RULES, CORE_VERSION, DIRECTORIES, RULES_SHA256, ContractError, canonical, confirmatory_identity, digest, inquiry_link, inquiry_step_binding, load, loads, schema_files, validate
+from events import ProjectLock, RecoveryRequired, anchor, atomic, begin, check_anchor, event, finish, git_dir, inquiry_attempt, inquiry_completion, journal, now, runtime, unfinished, write_execution_events
 from resources import ancestor, applicability, committed_unchanged, fingerprint, frozen_bytes, git, head, safe_path
 from supervision_state import Store, check_supervision
 
@@ -136,30 +136,39 @@ def fit_checks(store: Store, request: dict) -> list[tuple[str, str]]:
 def inquiry_fit_checks(store: Store, request: dict) -> list[tuple[str, str]]:
     binding = inquiry_link(request)
     hypothesis = request.get("hypothesis")
-    if binding is None:
-        for rid, record in store.records.items():
-            if record["schema_version"] != "inquiry@1" or rid not in store.committed:
-                continue
-            step = (record["next_action"] or {}).get("confirmatory", {})
-            if step.get("hypothesis") == hypothesis and hypothesis and store.state(rid)[0] != "SUPERSEDED":
-                return [("NOT_VERIFIED", "Active inquiry requires a versioned link for this confirmatory hypothesis.")]
-        return []
+    analysis = confirmatory_identity(request)
+    matching_rounds = {}
+    for rid, record in store.records.items():
+        if record["schema_version"] != "inquiry@1" or rid not in store.committed:
+            continue
+        step = (record["next_action"] or {}).get("confirmatory")
+        if step and analysis and confirmatory_identity(step) == analysis:
+            matching_rounds[rid] = record
+        if (binding is None and step and step["hypothesis"] == hypothesis
+                and store.state(rid)[0] != "SUPERSEDED"):
+            return [("NOT_VERIFIED", "Active inquiry requires a versioned link for this confirmatory hypothesis.")]
 
-    rid = binding["id"]
-    record = store.records.get(rid)
-    if not record or record["schema_version"] != "inquiry@1" or store.state(rid)[0] != "CURRENT":
-        return [("NOT_VERIFIED", "Inquiry round is unavailable or no longer current. Reassess before execution.")]
-    path = safe_path(store.root, store.paths[rid])
-    if not record["next_action"] or inquiry_step_binding(record, fingerprint(path.read_bytes())) != binding:
-        return [("NOT_VERIFIED", "The linked inquiry version or pending criterion differs from its current record.")]
-    step = record["next_action"].get("confirmatory")
-    if (not step or step["execution_id"] != request.get("execution_id")
-            or step["hypothesis"] != hypothesis or request["target"] != hypothesis):
-        return [("FAIL", "The requested execution or hypothesis differs from the inquiry proposal.")]
-    if (any(inquiry_completion(store.records[eid]) == binding for eid in store.committed)
-            or inquiry_attempt(store.root, request["project_id"], binding)):
-        return [("NOT_VERIFIED", "This inquiry action already has an execution attempt. Inspect its effects before proceeding.")]
-    return [("PASS", "Execution matches the exact active inquiry version and criterion.")]
+    if binding is not None:
+        rid = binding["id"]
+        record = store.records.get(rid)
+        if not record or record["schema_version"] != "inquiry@1" or store.state(rid)[0] != "CURRENT":
+            return [("NOT_VERIFIED", "Inquiry round is unavailable or no longer current. Reassess before execution.")]
+        path = safe_path(store.root, store.paths[rid])
+        if not record["next_action"] or inquiry_step_binding(record, fingerprint(path.read_bytes())) != binding:
+            return [("NOT_VERIFIED", "The linked inquiry version or pending criterion differs from its current record.")]
+        if rid not in matching_rounds or request["target"] != hypothesis:
+            return [("FAIL", "The requested execution or hypothesis differs from the inquiry proposal.")]
+
+    if matching_rounds:
+        for eid in store.committed:
+            previous = inquiry_completion(store.records[eid])
+            if previous and (prior := matching_rounds.get(previous["id"])):
+                path = safe_path(store.root, store.paths[prior["id"]])
+                if inquiry_step_binding(prior, fingerprint(path.read_bytes())) == previous:
+                    return [("NOT_VERIFIED", "This frozen analysis already completed. Inspect its recorded effects.")]
+        if inquiry_attempt(store.root, request["project_id"], analysis):
+            return [("NOT_VERIFIED", "This frozen analysis already has an execution attempt. Inspect its effects and possible exposure.")]
+    return [("PASS", "Execution matches the exact active inquiry version and criterion.")] if binding else []
 
 
 def propose(root: Path, request: dict) -> dict:
@@ -327,15 +336,14 @@ def import_execution(root: Path, operation_id: str) -> dict:
         for p, sha in entry["outputs"].items():
             if fingerprint(frozen_bytes(root, head(root), p)) != sha:
                 raise ContractError("run commit differs from observed outputs")
-        ids = []
+        expected = []
         for kind, observed in (("EXECUTION_STARTED", entry["observed_at"]), ("EXECUTION_COMPLETED", entry["completed_at"])):
             e = event(project["project_id"], operation_id, kind, entry["request"]["target"], observed_at=observed,
-                      sequence=len(ids))
+                      sequence=len(expected))
             if kind == "EXECUTION_COMPLETED" and binding:
                 e["extensions"] = {"inquiry": binding}
-            validate(e)
-            atomic(root / ".research/events" / (e["id"] + ".json"), e)
-            ids.append(e["id"])
+            expected.append(e)
+        ids = write_execution_events(root, expected)
         atomic(path, {**entry, "imported_events": ids, "run_commit": head(root)})
         return {"effect": "admitted", "event_ids": ids, "consolidated": False}
 
