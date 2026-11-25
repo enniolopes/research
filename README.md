@@ -52,6 +52,8 @@ Open Claude Code in the same study repository. Use:
 
 Replace the manuscript path with your file. Third-party or historical papers can also be reviewed without inventing a new protocol or execution history.
 
+From a status summary, you can ask “What evidence supports this conclusion?” or “The definition of this measure changed. Which conclusions should we revisit?” Research can trace the recorded dependencies and identify where a new judgment is needed. See the [study views](skills/research-map/SKILL.md#study-views) for terminal and JSON access.
+
 ## What to expect
 
 Research guides the agent to establish the question before choosing an analysis, record confirmatory choices before seeing their results, and write claims from inspected sources or executed evidence. New ideas remain open to exploration; a result-driven change is recorded rather than silently presented as confirmation.

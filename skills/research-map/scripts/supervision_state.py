@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 
 import epistemic
@@ -28,7 +29,8 @@ class Result:
 
 
 class Store:
-    def __init__(self, root: Path):
+    def __init__(self, root: Path, *, as_of: datetime | None = None, planning_only=False):
+        self.as_of = as_of
         self.root = root.resolve()
         self.records: dict[str, dict] = {}
         self.paths: dict[str, str] = {}
@@ -42,7 +44,8 @@ class Store:
             status, why = committed_unchanged(root, ".research/project.json")
             if status != "PASS":
                 self.issues.append((status, why))
-        for schema, directory in DIRECTORIES.items():
+        directories = {"inquiry@1": DIRECTORIES["inquiry@1"]} if planning_only else DIRECTORIES
+        for schema, directory in directories.items():
             for path in sorted((root / ".research" / directory).glob("*.json")):
                 relative = path.relative_to(root).as_posix()
                 try:
@@ -52,6 +55,9 @@ class Store:
                         raise ContractError(f"{relative}: filename/schema/ID mismatch")
                     if not self.project or data["project_id"] != self.project["project_id"]:
                         raise ContractError(f"{relative}: project identity mismatch")
+                    if planning_only and data["stage"] != "planning":
+                        self.issues.append(("NOT_VERIFIED", "Later inquiry assessments are outside the planning view."))
+                        continue
                     if data["id"] in self.records:
                         raise ContractError("duplicate record ID")
                     self.records[data["id"]] = data
@@ -59,19 +65,19 @@ class Store:
                     status, why = committed_unchanged(root, relative)
                     if status == "PASS":
                         self.committed.add(data["id"])
-                    else:
+                    elif schema != "inquiry@1" or status != "NOT_VERIFIED":
                         self.issues.append((status, why))
                 except (OSError, ContractError) as exc:
                     self.issues.append(("FAIL", str(exc)))
-        self._history()
+        self._history(directories.values())
         self._relationships()
         self._cache: dict[str, tuple[str, list[tuple[str, str]]]] = {}
 
-    def _history(self):
+    def _history(self, directories):
         try:
             check_anchor(self.root)
-            directories = [f".research/{x}/" for x in DIRECTORIES.values()]
-            added = git(self.root, "log", "--format=", "--name-only", "--diff-filter=A", "HEAD", "--", *directories).decode().splitlines()
+            paths = [f".research/{x}/" for x in directories]
+            added = git(self.root, "log", "--format=", "--name-only", "--diff-filter=A", "HEAD", "--", *paths).decode().splitlines()
             for path in sorted(set(x for x in added if x.endswith(".json"))):
                 if not (self.root / path).is_file():
                     self.issues.append(("FAIL", f"committed record deleted/renamed: {path}"))
@@ -81,7 +87,18 @@ class Store:
             self.issues.append(("NOT_VERIFIED", str(exc)))
 
     def _relationships(self):
+        initial_inquiries = set()
         for rid, record in self.records.items():
+            if record["schema_version"] == "inquiry@1":
+                question_id = record["question_id"]
+                if rid in self.committed and not record["supersedes"]:
+                    if question_id in initial_inquiries:
+                        self.issues.append(("FAIL", f"{question_id}: multiple initial inquiry records"))
+                    initial_inquiries.add(question_id)
+                if predecessor := self.records.get(record["supersedes"]):
+                    if (predecessor.get("question_id") != question_id
+                            or (predecessor.get("stage") == "assessment" and record["stage"] == "planning")):
+                        self.issues.append(("FAIL", f"{rid}: incompatible inquiry predecessor"))
             other = record.get("supersedes")
             if other:
                 if other not in self.records or self.records[other]["schema_version"] != record["schema_version"]:
@@ -179,8 +196,7 @@ class Store:
                 if action not in c["applies_to"] or c["materiality"] == "advisory":
                     continue
                 if c.get("refresh_at"):
-                    from datetime import datetime, timezone
-                    if datetime.now(timezone.utc) >= datetime.fromisoformat(c["refresh_at"].replace("Z", "+00:00")):
+                    if (self.as_of or datetime.now(timezone.utc)) >= datetime.fromisoformat(c["refresh_at"].replace("Z", "+00:00")):
                         results.append(("NOT_VERIFIED", f"criterion requires renewed inspection: {rid}#{c['id']}"))
                 key = rid + "#" + c["id"]
                 if key not in (covered or set()):
@@ -212,7 +228,7 @@ class Store:
         results = []
         target = record["target"]
         target_binding = {k: v for k, v in target.items() if k in ("resource_ref", "binding", "current_path", "current_record", "refresh_rule", "refresh_at")}
-        results.append(applicability(self.root, target_binding, record, self.records))
+        results.append(applicability(self.root, target_binding, record, self.records, self.as_of))
         tr = resolve(target["resource_ref"], record, self.records)
         if tr["kind"] != "restricted_external":
             text = frozen_bytes(self.root, tr["revision"], tr["path"]).decode(errors="replace")
@@ -223,7 +239,7 @@ class Store:
         for route in record["basis"]["routes"]:
             for binding in route["all_of"]:
                 value = resolve(binding["resource_ref"], record, self.records)
-                results.append(applicability(self.root, binding, record, self.records))
+                results.append(applicability(self.root, binding, record, self.records, self.as_of))
                 has_evidence |= value["kind"] in ("result", "source", "restricted_external")
                 results.extend(self.scientific_result(value, target.get("decides")))
         if record["disposition"] in ("adopt", "narrow", "retain") and not has_evidence:
@@ -278,8 +294,10 @@ class Store:
         if rid in self._cache:
             return self._cache[rid]
         record = self.records[rid]
-        successors = [r for r in self.records.values() if r.get("supersedes") == rid and
-                      ((r["schema_version"] == "references@1" and r["id"] in self.committed) or self.consolidated(r["id"]))]
+        successors = [r for r in self.records.values() if r.get("supersedes") == rid
+                      and r["schema_version"] == record["schema_version"] and
+                      ((r["schema_version"] in ("references@1", "inquiry@1") and r["id"] in self.committed)
+                       or self.consolidated(r["id"]))]
         if len(successors) > 1:
             raise RecoveryRequired(f"conflicting successors of {rid}")
         if successors:
@@ -289,7 +307,7 @@ class Store:
             return ("WITHDRAWN" if successor.get("disposition") == "withdraw" else "SUPERSEDED", [])
         checks = []
         if record["schema_version"] == "review@1":
-            checks = review.evaluate(self.root, record, self.records, self.committed, self.paths[rid], require_adequacy=False)
+            checks = review.evaluate(self.root, record, self.records, self.committed, self.paths[rid], require_adequacy=False, as_of=self.as_of)
         elif record["schema_version"] == "decision@1":
             checks = self.decision_checks(record, (*stack, rid))
         elif record["schema_version"] == "references@1":
@@ -297,6 +315,24 @@ class Store:
         elif record["schema_version"] == "release@1":
             from release import evaluate
             checks = evaluate(self, record)
+        elif record["schema_version"] == "inquiry@1":
+            for binding in record["dependencies"]:
+                try:
+                    checks.append(applicability(self.root, binding, record, self.records, self.as_of))
+                except ContractError as exc:
+                    checks.append(("FAIL", str(exc)))
+            for criterion in record["criteria"]:
+                for decision_id in criterion["decision_refs"]:
+                    decision = self.records.get(decision_id)
+                    if not decision or decision["schema_version"] != "decision@1":
+                        checks.append(("NOT_VERIFIED", f"{decision_id}: supervised decision unavailable"))
+                        continue
+                    state, _ = self.state(decision_id, (*stack, rid))
+                    if state != "CURRENT":
+                        status = "STALE" if state in ("STALE", "SUPERSEDED", "WITHDRAWN") else "NOT_VERIFIED"
+                        checks.append((status, f"{decision_id}: supporting decision is {state}"))
+                    elif criterion["assessment"] == "met" and decision["disposition"] not in ("adopt", "narrow", "retain"):
+                        checks.append(("NOT_VERIFIED", f"{decision_id}: decision retains uncertainty"))
         else:
             for value in record.get("resources", {}).values():
                 checks.append(verify(self.root, value))

@@ -43,12 +43,16 @@ The eight research phases below remain the lifecycle/navigation layer. Preflight
 ## Arguments and session UX
 
 - `start <question>` — start phase 1, initialize/resume memory, then proceed through the smallest next action.
-- `status` — internally resume and validate; return one-screen state and next action.
+- `status` — run `view status --root . --audience model` directly through the installed research-map dispatcher. For a standalone manuscript, use `--document FILE` in place of `--root .`. Summarize the question, recorded conclusion, uncertainty and next action from the returned entries. Use the same audience for explanation and impact queries. [Study views](../research-map/SKILL.md#study-views)
 - `review [path]` — run phase 7 for native work; use `reference/external-review.md` for third-party or historical work without native artifacts.
 - `replay RUN-<n>` — invoke the research-map replay helper when the run records a replay recipe; report `EXACT | DRIFT | ERROR | NOT_VERIFIED` without treating replay status as scientific truth.
 - anything else — answer the user's normal research request, but run the applicable preflight before a consequential action.
 
-On an existing repository, invoke `research-map resume` before the first research action. Resume runs the fast integrity subset specified by `research-map`; run full validation before commits, review and release. Update the map only on observable state changes.
+A status, explanation or impact request uses only the view, including on the first turn in an existing study. Report any coverage limits it returns. Opening raw artifacts or running validators to fill a gap can expose restricted or blinded outcomes.
+
+When beginning active research work in an existing repository, invoke `research-map resume` and its fast integrity checks. Run full validation before commits, native review and release. Update the map only on observable state changes.
+
+When a supervised inquiry already exists or an active study needs a durable decision across sessions, use [inquiry state](../research-map/reference/inquiry.md). Resume at the current criterion, select a feasible action and record the observed effect. Carry out consequential actions through the phase's supervisory procedure.
 
 For external review without a native map, use the external-review route instead of initializing a fictitious research history. Read `reference/inference-and-revision.md` when interpreting constructs/mechanisms, selecting a discriminating investigation or revising an existing conclusion. Keep its bridge in existing authoritative artifacts; a new ontology or database is not required.
 

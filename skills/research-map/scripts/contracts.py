@@ -168,8 +168,30 @@ SCHEMAS = {
                      "evidence_refs": array(S)}),
 }
 RULES_SHA256 = digest({"version": CORE_VERSION, "rules": CORE_RULES, "schemas": SCHEMAS})
+QUESTION_ID = string(r"^Q[1-9][0-9]*$")
+INQUIRY_ID = string(r"^INQ-[1-9][0-9]*$")
+DECISION_ID = string(r"^DEC-[1-9][0-9]*$")
+# Inquiry records guide work. The existing supervision fingerprint still governs
+# executions and admissions, whose contracts and rules retain their meaning.
+SCHEMAS["inquiry@1"] = obj({
+    "schema_version": string(enum=["inquiry@1"]), "id": INQUIRY_ID, "project_id": UUID_S,
+    "question_id": QUESTION_ID, "question": S, "importance": S,
+    "stage": string(enum=["planning", "assessment"]), "assessed_by": S,
+    "supersedes": {"oneOf": [INQUIRY_ID, {"type": "null"}]},
+    "resources": RESOURCES, "dependencies": array(BINDING, 1),
+    "criteria": array(obj({
+        "id": S, "dimension": string(enum=["problem", "hypothesis", "design", "evidence", "conclusion"]),
+        "desired": S, "assessment": string(enum=["unassessed", "unmet", "met", "limited"]),
+        "reason": S, "decision_refs": array(DECISION_ID),
+    }), 1),
+    "next_action": {"oneOf": [{"type": "null"}, obj({
+        "criterion": S, "kind": string(enum=["investigate", "seek_review", "decide_scope"]),
+        "action": S, "expected_signal": S,
+    })]},
+    "observation": {"oneOf": [{"type": "null"}, obj({"text": S, "resource_ref": REF})]},
+})
 DIRECTORIES = {"references@1": "references", "decision@1": "decisions", "review@1": "reviews",
-               "event@1": "events", "release@1": "releases"}
+               "event@1": "events", "release@1": "releases", "inquiry@1": "inquiries"}
 
 
 def check(value, schema, label="$", errors=None):
@@ -252,6 +274,8 @@ def validate(data: dict) -> None:
     for route in data.get("basis", {}).get("routes", []):
         for binding in route.get("all_of", []):
             binding_errors(binding, errors)
+    if version == "inquiry@1":
+        inquiry_errors(data, errors)
     if errors:
         raise ContractError("; ".join(errors))
 
@@ -261,6 +285,28 @@ def binding_errors(binding, errors):
         errors.append("follow_current requires current_path or current_record")
     if binding.get("binding") == "external_refresh" and not (binding.get("refresh_rule") and binding.get("refresh_at")):
         errors.append("external_refresh requires refresh_rule and refresh_at")
+
+def inquiry_errors(record, errors):
+    criteria = record["criteria"]
+    if len({c["id"] for c in criteria}) != len(criteria):
+        errors.append("inquiry repeats a criterion ID")
+    pending = {c["id"] for c in criteria if c["assessment"] in ("unmet", "unassessed")}
+    action = record["next_action"]
+    if (pending and (not action or action["criterion"] not in pending)) or (not pending and action):
+        errors.append("next action must address a recorded pending criterion")
+    observation = record["observation"]
+    if observation and all(observation["resource_ref"] != b["resource_ref"] for b in record["dependencies"]):
+        errors.append("observation must identify a declared dependency")
+    if record["stage"] == "assessment" and record["supersedes"] and not observation:
+        errors.append("an inquiry revision must identify the observation that informed it")
+    for criterion in criteria:
+        if criterion["dimension"] == "conclusion" and criterion["assessment"] == "met" and not criterion["decision_refs"]:
+            errors.append("a satisfied conclusion criterion needs a supervised decision reference")
+    if record["stage"] == "planning":
+        empirical = any(c["decision_refs"] or (c["dimension"] in ("evidence", "conclusion")
+                        and c["assessment"] == "met") for c in criteria)
+        if observation or empirical or any(r["kind"] == "result" for r in record["resources"].values()):
+            errors.append("planning records can register commitments before empirical judgments")
 
 
 def schema_files() -> dict[str, dict]:

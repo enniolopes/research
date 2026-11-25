@@ -5,7 +5,7 @@ when_to_use: Use internally at the start of an existing research session, after 
 license: CC-BY-NC-4.0
 metadata:
   version: 0.11.0
-argument-hint: 'init|resume|update|validate [path to RESEARCH.map]'
+argument-hint: 'status|init|resume|update|validate [path to study]'
 ---
 
 # Research map
@@ -13,6 +13,8 @@ argument-hint: 'init|resume|update|validate [path to RESEARCH.map]'
 `RESEARCH.map` is the one-screen operational index of a research. It is not a second copy of protocol, analysis plan, results, lineage or history. The repository artifacts remain authoritative; the map says where they are and what state the research is in.
 
 `scientific-method` normally invokes this skill automatically. Do not require the user to perform a session ritual manually.
+
+- `status` — call `view status --root . --audience model` directly, including for the first request in a study. Explanation and impact requests use the corresponding view with the same audience. [Study views](#study-views)
 
 ## Map contract
 
@@ -37,9 +39,24 @@ Build a map from an existing protocol and decision log. Fill only state that bel
 
 ## `resume`
 
-Before the first research action in an existing repository, read the map and only the authoritative artifacts needed for the active question. Return one screen: question and permitted conclusion; decisive evidence and main limitation; next action and material blockers; last change. Then run the fast integrity subset `--only map,plan,runs,exposure`. Full validation is reserved for commits, review and publication. Do not imply a conclusion merely from a gate state.
+Use this mode when resuming active research work. Consult the map and the authoritative artifacts permitted for the action, phase and audience. Return the question, permitted conclusion, decisive evidence, main limitation, next action, material blockers and last change. Run the fast integrity subset `--only map,plan,runs,exposure`. Full validation is reserved for commits, native review and publication. Do not imply a conclusion merely from a gate state.
 
 A stale map never outranks current executable/source evidence. If map narrative conflicts with current code/data/artifacts, surface the contradiction, use verifiable current evidence and preserve the correction.
+
+## Study views
+
+From the study directory, use the installed dispatcher to inspect recorded material offline. In a terminal, set `CLAUDE_SKILL_DIR` to the path of the plugin's `skills/research-map` directory. For any output sent to a model, select `--audience model` in either format. Use `--audience local` for direct human inspection. Apply the study's [capability policy](reference/capability-policy.md) to sources and quoted material.
+
+For status, explanation and impact, answer solely from the view, including when coverage is partial or a source is unsupported. The view applies source permissions and phase boundaries. Opening the map, manuscripts or results separately, invoking operational resume or running validators to complete the answer can expose blinded or restricted outcomes.
+
+```bash
+python3 "${CLAUDE_SKILL_DIR}/scripts/research.py" view status --root . --audience model
+python3 "${CLAUDE_SKILL_DIR}/scripts/research.py" view explain C1 --root . --audience model --format json
+```
+
+The status field describes query coverage. A scientific judgment needs a source, scope and author. Use the selector from the response when a short ID identifies several occurrences. For a changed study resource, pass its selector to `view impact` with the same root and audience. Inspect the reported support paths, remaining evidence and coverage before recording a revised judgment. A newly discovered dependency may need to be recorded first.
+
+For a standalone manuscript, use `view status --document FILE --audience model` or `view explain SELECTOR --document FILE --audience model`. The dispatcher reads UTF-8 text directly. An optional `--review REPORT` supplies a separate text review whose first nonblank line is `Document-SHA256: <64 hex digits>` for the exact manuscript bytes. Distinguish what the author reported, what the reviewer reconstructed and what a recorded execution reproduced. A missing judgment is a gap. When the user requests an assessment, follow the appropriate study or [external review procedure](../scientific-method/reference/external-review.md). For a PDF review, inspect authorized pages and cite their locations.
 
 ## `update`
 
