@@ -51,7 +51,7 @@ def summary(entry):
     return result
 
 
-def overview(entries):
+def overview(entries, has_inquiries=False):
     # Pointers keep the compact reading and the detailed entries in agreement.
     groups = [
         ("Question", {"question"}, "No explicit research question located."),
@@ -66,7 +66,8 @@ def overview(entries):
         # Keep decisions relevant to work in progress ahead of closed history.
         members.sort(key=lambda e: e.get("details", {}).get("state") == "SUPERSEDED")
         selectors = [e["selector"] for e in members]
-        result.append({"title": title, "selectors": selectors, "gap": None if selectors else gap})
+        covered_by_inquiry = has_inquiries and title in ("Question", "Next action")
+        result.append({"title": title, "selectors": selectors, "gap": None if selectors or covered_by_inquiry else gap})
     return result
 
 
@@ -104,7 +105,7 @@ def explicit_source(reader, root, target, entries):
 def select(entries, operation, target):
     if operation == "status":
         # Dependency nodes are available by following a claim's explanation.
-        supporting = {"resource", "route", "references"}
+        supporting = {"resource", "route", "references", "inquiry"}
         return "complete", [summary(e) for e in entries if e["kind"] not in supporting]
     matches = [entry for entry in entries if entry["selector"] == target]
     if not matches:
@@ -140,7 +141,7 @@ def query(args):
             if maps:
                 entries.extend(view_native.collect(reader, root))
             if projects:
-                entries.extend(view_supervised.collect(reader, root))
+                entries.extend(view_supervised.collect(reader, root, target=args.target))
                 entries.extend(journal_entries(reader, root))
             if not (maps or projects):
                 reader.partial("No readable study map or supervision records. For a manuscript use --document.")
@@ -156,19 +157,24 @@ def query(args):
             break
     else:
         status, items = "partial", []
+        entries = []
         reader.issues.clear()
         reader.partial("Inputs changed during both read attempts. Repeat the query.")
         revision = None
 
     if status == "complete" and reader.issues:
         status = "partial"
+    inquiries = [
+        {"selector": e["selector"], "source": e["source"], **e["details"]}
+        for e in entries if e["kind"] == "inquiry" and e["details"]["question_id"] in e["aliases"]
+    ] if args.operation == "status" else []
     result = {
         "schema_version": "research-view@1",
         "operation": args.operation,
         "status": status,
         "snapshot": {"input": "document" if args.document else "study",
                      "revision": revision, "evaluated_at": reader.as_of.isoformat(),
-                     "id": reader.snapshot_id() if status != "partial" or items else None},
+                     "id": reader.snapshot_id() if status != "partial" or items or inquiries else None},
         "entries": items,
         "issues": list(dict.fromkeys(reader.issues)),
     }
@@ -182,7 +188,8 @@ def query(args):
         result["coverage"] = "Recorded grounds in inspected material. Missing judgments require assessment."
     else:
         result["coverage"] = "Recorded study overview. Use explain with a selector to inspect its grounds."
-        result["overview"] = overview(items)
+        result["inquiries"] = inquiries
+        result["overview"] = overview(items, has_inquiries=bool(inquiries))
     return result
 
 
@@ -195,6 +202,8 @@ def status_lines(report):
     if others:
         groups.append(("Other records", others, None))
     for title, selectors, gap in groups:
+        if not selectors and not gap:
+            continue
         lines.extend(["", f"## {title}", ""])
         if gap:
             lines.append(gap)
@@ -227,6 +236,34 @@ def status_lines(report):
     return lines
 
 
+def inquiry_lines(inquiries):
+    lines = []
+    messages = {
+        "closed": "All recorded criteria are met or have a documented limitation.",
+        "reassess": "Reassess the inquiry against the changed evidence before using its recorded action.",
+        "verify": "Verify the inquiry and its supporting records before using its recorded action.",
+    }
+    for inquiry in inquiries:
+        lines.extend(["", f"## {inquiry['question_id']} · {inquiry['question']}", "",
+                      inquiry["importance"], "", f"Recorded by {inquiry['assessed_by']}.",
+                      f"Source: {inquiry['source']} · `{inquiry['selector']}`", ""])
+        for criterion in inquiry["criteria"]:
+            validity = "" if criterion["applicable"] else " · applicability unverified"
+            lines.append(f"- **{criterion['dimension']} · {criterion['assessment']}{validity}** "
+                         f"— {criterion['reason']} Desired condition: {criterion['desired']}")
+        if inquiry["observation"]:
+            lines.extend(["", f"Last observation — {inquiry['observation']['text']}"])
+        step = inquiry["next"]
+        if step["state"] == "proposed":
+            lines.extend(["", f"**Proposed action** — {step['action']}",
+                          f"**Expected signal** — {step['expected_signal']}"])
+        else:
+            lines.extend(["", messages[step["state"]]])
+            for check in inquiry["checks"]:
+                lines.append(f"- {check['reason']}")
+    return lines
+
+
 def markdown(report):
     lines = [f"# Research {report['operation']}", "", f"**{report['status']}**", "", report["coverage"]]
     if report.get("impact") == "no_declared_dependents":
@@ -238,6 +275,7 @@ def markdown(report):
     if snapshot["id"]:
         lines.append(f"Snapshot: `{snapshot['id']}`")
     if report["operation"] == "status":
+        lines.extend(inquiry_lines(report["inquiries"]))
         lines.extend(status_lines(report))
     else:
         lines.extend(detail_lines(report["entries"]))

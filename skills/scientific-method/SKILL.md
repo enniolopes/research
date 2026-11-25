@@ -52,6 +52,8 @@ A status, explanation or impact request uses only the view, including on the fir
 
 When beginning active research work in an existing repository, invoke `research-map resume` and its fast integrity checks. Run full validation before commits, native review and release. Update the map only on observable state changes.
 
+When a supervised inquiry already exists or an active study needs a durable decision across sessions, use [inquiry state](../research-map/reference/inquiry.md). Resume at the current criterion, select a feasible action and record the observed effect. Carry out consequential actions through the phase's supervisory procedure.
+
 For external review without a native map, use the external-review route instead of initializing a fictitious research history. Read `reference/inference-and-revision.md` when interpreting constructs/mechanisms, selecting a discriminating investigation or revising an existing conclusion. Keep its bridge in existing authoritative artifacts; a new ontology or database is not required.
 
 ## Preflights

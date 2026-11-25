@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from glob import escape
 from pathlib import Path
+import re
 
 import view_native
 from contracts import ContractError, DIRECTORIES, digest, loads, validate
@@ -37,6 +38,8 @@ def _record_dependencies(record):
     """IDs whose content or authority contributes to fields projected from this record."""
     refs = list(record.get("references", record.get("reference_set", [])))
     refs.extend(record.get("judgments", []))
+    if record["schema_version"] == "inquiry@1":
+        refs.extend(ref for criterion in record["criteria"] for ref in criterion["decision_refs"])
     if record["schema_version"] == "release@1":
         refs.extend(record["target"]["reference_set"])
         for key in ("decision_refs", "review_refs", "authority_refs"):
@@ -143,7 +146,7 @@ def _watch_record(reader, root, record, records, controlled):
     return has_result
 
 
-def _inventory(reader, root):
+def _inventory(reader, root, planning_only=False):
     """Pre-observe inputs of Store, which uses its own direct filesystem/Git APIs."""
     project_file = root / ".research/project.json"
     project = loads(reader.read(project_file))
@@ -155,6 +158,8 @@ def _inventory(reader, root):
     paths = {}
     incomplete = False
     for schema, directory in DIRECTORIES.items():
+        if planning_only and schema != "inquiry@1":
+            continue
         folder = root / ".research" / directory
         permitted = reader.watch_dir(folder, "*.json")
         if set(folder.glob("*.json")) != set(permitted):
@@ -167,6 +172,9 @@ def _inventory(reader, root):
                         or value["id"] != path.stem):
                     raise ContractError("invalid record identity")
             except (ContractError, OSError, ValueError, UnicodeError):
+                incomplete = True
+                continue
+            if planning_only and value["stage"] != "planning":
                 incomplete = True
                 continue
             records[path.stem] = value
@@ -198,9 +206,30 @@ def _inventory(reader, root):
     if incomplete:
         reader.partial("Some supervised records or their evidence could not be inspected. Current authority is unverified.")
         return ReadableRecords(root, project, visible, paths)
+    if planning_only and not visible:
+        return ReadableRecords(root, project, visible, paths)
     if check_runs:
         _watch_runs(reader, root)
-    return Store(root, as_of=reader.as_of)
+    return Store(root, as_of=reader.as_of, planning_only=planning_only)
+
+
+def _inquiry_details(record, node, by_record, entries):
+    state = node["details"]["state"]
+    recorded_action = record["next_action"]
+    if state == "CURRENT":
+        next_step = {"state": "proposed", **recorded_action} if recorded_action else {"state": "closed"}
+    else:
+        state_label = {"STALE": "reassess", "SUPERSEDED": "historical"}
+        next_step = {"state": state_label.get(state, "verify")}
+    criteria = []
+    for criterion in record["criteria"]:
+        decisions = [{"selector": by_record[rid], "state": entries[by_record[rid]]["details"]["state"]}
+                     for rid in criterion["decision_refs"] if rid in by_record]
+        criteria.append({**criterion, "decisions": decisions, "applicable": state == "CURRENT"})
+    return {"id": record["id"], "question_id": record["question_id"], "question": record["question"],
+            "importance": record["importance"], "stage": record["stage"], "assessed_by": record["assessed_by"],
+            "criteria": criteria, "recorded_action": recorded_action, "next": next_step,
+            "previous": by_record.get(record["supersedes"])}
 
 
 def _project(reader, store):
@@ -211,7 +240,7 @@ def _project(reader, store):
 
     for rid, record in sorted(store.records.items()):
         kind = record["schema_version"].split("@")[0]
-        if kind not in {"decision", "review", "references", "release"}:
+        if kind not in {"decision", "review", "references", "release", "inquiry"}:
             continue
         source = store.paths[rid]
         revision = fingerprint(reader.read(store.root / source))
@@ -297,6 +326,20 @@ def _project(reader, store):
                 details["support_routes"].append({"selector": route_id, "id": route["id"], "status": status})
             if len(record["basis"]["routes"]) > 1:
                 details["route_scope"] += " Alternative routes require scientific review of surviving support and shared origins."
+        elif kind == "inquiry":
+            node["text"] = record["question"]
+            details.update(_inquiry_details(record, node, by_record, entries))
+            for binding in record["dependencies"]:
+                edge(resource_selector(binding["resource_ref"], record), selector)
+            for criterion in details["criteria"]:
+                for decision in criterion["decisions"]:
+                    edge(decision["selector"], selector)
+            observation = record["observation"]
+            details["observation"] = ({"text": observation["text"],
+                                       "source": resource_selector(observation["resource_ref"], record)}
+                                      if observation else None)
+            if details["previous"]:
+                node["context"] = [details["previous"]]
         elif kind == "review":
             details.update(verdict=record["verdict"], reviewed_commit=record["reviewed_commit"],
                            reviewer=record["reviewer"]["identity"], findings=record["findings"],
@@ -318,20 +361,31 @@ def _project(reader, store):
             reference_id = pointer.split("#", 1)[0]
             if reference_id in by_record:
                 edge(by_record[reference_id], selector)
+    inquiries = {}
+    for node in entries.values():
+        if node["kind"] == "inquiry" and node["details"]["state"] != "SUPERSEDED":
+            inquiries.setdefault(node["details"]["question_id"], []).append(node)
+    for question_id, rounds in inquiries.items():
+        visible = [node for node in rounds if node["details"]["state"] != "CANDIDATE"] or rounds
+        for node in visible:
+            node["aliases"].append(question_id)
     return list(entries.values())
 
 
-def collect(reader, root: Path):
+def collect(reader, root: Path, target=None):
     if not (root / ".research/project.json").exists():
         reader.watch_dir(root / ".research", "project.json")
         return []
     try:
-        if getattr(reader, "operation", None) == "status":
+        planning_only = False
+        inquiry_target = target and (re.fullmatch(r"Q[1-9][0-9]*", target)
+                                     or re.fullmatch(r"(?:supervised:[^:]+:[^:]+:)?INQ-[1-9][0-9]*", target))
+        if getattr(reader, "operation", None) == "status" or inquiry_target:
             map_path = root / "RESEARCH.map"
             if map_path.exists() and not view_native.analysis_reached(reader.read(map_path).decode()):
-                reader.partial("Pre-analysis status omits supervised judgments and outcomes until an analysis gate is reached.")
-                return []
-        store = _inventory(reader, root)
+                reader.partial("Pre-analysis view omits supervised judgments and outcomes until an analysis gate is reached.")
+                planning_only = True
+        store = _inventory(reader, root, planning_only=planning_only)
         if isinstance(store, Store) and store.issues:
             reader.partial("Supervised record integrity is incomplete; verify the project before relying on its judgments.")
         return _project(reader, store)

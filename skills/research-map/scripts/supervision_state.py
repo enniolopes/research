@@ -29,7 +29,7 @@ class Result:
 
 
 class Store:
-    def __init__(self, root: Path, *, as_of: datetime | None = None):
+    def __init__(self, root: Path, *, as_of: datetime | None = None, planning_only=False):
         self.as_of = as_of
         self.root = root.resolve()
         self.records: dict[str, dict] = {}
@@ -44,7 +44,8 @@ class Store:
             status, why = committed_unchanged(root, ".research/project.json")
             if status != "PASS":
                 self.issues.append((status, why))
-        for schema, directory in DIRECTORIES.items():
+        directories = {"inquiry@1": DIRECTORIES["inquiry@1"]} if planning_only else DIRECTORIES
+        for schema, directory in directories.items():
             for path in sorted((root / ".research" / directory).glob("*.json")):
                 relative = path.relative_to(root).as_posix()
                 try:
@@ -54,6 +55,9 @@ class Store:
                         raise ContractError(f"{relative}: filename/schema/ID mismatch")
                     if not self.project or data["project_id"] != self.project["project_id"]:
                         raise ContractError(f"{relative}: project identity mismatch")
+                    if planning_only and data["stage"] != "planning":
+                        self.issues.append(("NOT_VERIFIED", "Later inquiry assessments are outside the planning view."))
+                        continue
                     if data["id"] in self.records:
                         raise ContractError("duplicate record ID")
                     self.records[data["id"]] = data
@@ -61,19 +65,19 @@ class Store:
                     status, why = committed_unchanged(root, relative)
                     if status == "PASS":
                         self.committed.add(data["id"])
-                    else:
+                    elif schema != "inquiry@1" or status != "NOT_VERIFIED":
                         self.issues.append((status, why))
                 except (OSError, ContractError) as exc:
                     self.issues.append(("FAIL", str(exc)))
-        self._history()
+        self._history(directories.values())
         self._relationships()
         self._cache: dict[str, tuple[str, list[tuple[str, str]]]] = {}
 
-    def _history(self):
+    def _history(self, directories):
         try:
             check_anchor(self.root)
-            directories = [f".research/{x}/" for x in DIRECTORIES.values()]
-            added = git(self.root, "log", "--format=", "--name-only", "--diff-filter=A", "HEAD", "--", *directories).decode().splitlines()
+            paths = [f".research/{x}/" for x in directories]
+            added = git(self.root, "log", "--format=", "--name-only", "--diff-filter=A", "HEAD", "--", *paths).decode().splitlines()
             for path in sorted(set(x for x in added if x.endswith(".json"))):
                 if not (self.root / path).is_file():
                     self.issues.append(("FAIL", f"committed record deleted/renamed: {path}"))
@@ -83,7 +87,18 @@ class Store:
             self.issues.append(("NOT_VERIFIED", str(exc)))
 
     def _relationships(self):
+        initial_inquiries = set()
         for rid, record in self.records.items():
+            if record["schema_version"] == "inquiry@1":
+                question_id = record["question_id"]
+                if rid in self.committed and not record["supersedes"]:
+                    if question_id in initial_inquiries:
+                        self.issues.append(("FAIL", f"{question_id}: multiple initial inquiry records"))
+                    initial_inquiries.add(question_id)
+                if predecessor := self.records.get(record["supersedes"]):
+                    if (predecessor.get("question_id") != question_id
+                            or (predecessor.get("stage") == "assessment" and record["stage"] == "planning")):
+                        self.issues.append(("FAIL", f"{rid}: incompatible inquiry predecessor"))
             other = record.get("supersedes")
             if other:
                 if other not in self.records or self.records[other]["schema_version"] != record["schema_version"]:
@@ -279,8 +294,10 @@ class Store:
         if rid in self._cache:
             return self._cache[rid]
         record = self.records[rid]
-        successors = [r for r in self.records.values() if r.get("supersedes") == rid and
-                      ((r["schema_version"] == "references@1" and r["id"] in self.committed) or self.consolidated(r["id"]))]
+        successors = [r for r in self.records.values() if r.get("supersedes") == rid
+                      and r["schema_version"] == record["schema_version"] and
+                      ((r["schema_version"] in ("references@1", "inquiry@1") and r["id"] in self.committed)
+                       or self.consolidated(r["id"]))]
         if len(successors) > 1:
             raise RecoveryRequired(f"conflicting successors of {rid}")
         if successors:
@@ -298,6 +315,24 @@ class Store:
         elif record["schema_version"] == "release@1":
             from release import evaluate
             checks = evaluate(self, record)
+        elif record["schema_version"] == "inquiry@1":
+            for binding in record["dependencies"]:
+                try:
+                    checks.append(applicability(self.root, binding, record, self.records, self.as_of))
+                except ContractError as exc:
+                    checks.append(("FAIL", str(exc)))
+            for criterion in record["criteria"]:
+                for decision_id in criterion["decision_refs"]:
+                    decision = self.records.get(decision_id)
+                    if not decision or decision["schema_version"] != "decision@1":
+                        checks.append(("NOT_VERIFIED", f"{decision_id}: supervised decision unavailable"))
+                        continue
+                    state, _ = self.state(decision_id, (*stack, rid))
+                    if state != "CURRENT":
+                        status = "STALE" if state in ("STALE", "SUPERSEDED", "WITHDRAWN") else "NOT_VERIFIED"
+                        checks.append((status, f"{decision_id}: supporting decision is {state}"))
+                    elif criterion["assessment"] == "met" and decision["disposition"] not in ("adopt", "narrow", "retain"):
+                        checks.append(("NOT_VERIFIED", f"{decision_id}: decision retains uncertainty"))
         else:
             for value in record.get("resources", {}).values():
                 checks.append(verify(self.root, value))

@@ -14,6 +14,7 @@ Research has one public interaction (`scientific-method`) and two different form
 | Command execution and admission orchestration | `supervise.py`, public `research.py` dispatcher | Compose existing checks and domain evaluators; emit truthful effects |
 | Historical analytic and versioned decision navigation | `research-graph/scripts/graph.py`, `decision_graph.py` | Derive the appropriate view from authoritative records; report candidate consequences |
 | Research state, explanations and impact | `research.py view`, `view.py` and the native, supervised and document readers in `skills/research-map/scripts/` | Query a study or manuscript locally. Each occurrence has a selector bound to its source and version. |
+| Inquiry criteria, proposed actions and observed effects | `inquiry@1`, the existing supervised Store and [inquiry state](../skills/research-map/reference/inquiry.md) | Commit a new round to record learning. Read its applicability and history via the view, and use the supervisor for consequential actions. |
 | Read consistency and model-facing output | `view_reader.py` and the study's capability policy | Observe eligible inputs and directory membership, evaluate each attempt at one instant, recheck observations and retry once on change. |
 
 The same history predicate checks typed records and legacy RUN/EXEC/ASMT; restoration cannot hide committed mutation. Standalone import fallbacks preserve the existing script-loading interfaces.
