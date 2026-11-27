@@ -182,7 +182,11 @@ def query(args):
                 entries.extend(journal_entries(reader, root))
                 link_inquiry_executions(entries, reader.journal_complete)
             if not (maps or projects):
-                reader.partial("No readable study map or supervision records. For a manuscript use --document.")
+                reports = [] if reader.issues else reader.watch_dir(root, view_document.REVIEW_FILENAME)
+                if reports:
+                    entries.extend(view_document.collect(reader, reports[0], trace_citations=True))
+                else:
+                    reader.partial("No readable study map, supervision records or RESEARCH-REVIEW.md. For a manuscript use --document.")
             if args.target and (args.operation == "impact" or args.target.startswith("study-file:")):
                 if not any(args.target == e["selector"] or args.target in e.get("aliases", []) for e in entries):
                     if item := explicit_source(reader, root, args.target, entries):
