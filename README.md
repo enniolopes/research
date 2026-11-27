@@ -50,6 +50,8 @@ Open Claude Code in the same study repository. Use:
 | See the current conclusion, blockers and next action | `/research:scientific-method status` |
 | Review a manuscript | `/research:scientific-method review documents/paper.md` |
 
+For a review kept in its own directory, save the current assessment as `RESEARCH-REVIEW.md` with explicit conclusion and next-action headings. Opening that directory and requesting status then resumes the review. See the [external review procedure](skills/scientific-method/reference/external-review.md).
+
 Replace the manuscript path with your file. Third-party or historical papers can also be reviewed without inventing a new protocol or execution history.
 
 From a status summary, you can ask “What evidence supports this conclusion?” or “The definition of this measure changed. Which conclusions should we revisit?” Research can trace the recorded dependencies and identify where a new judgment is needed. See the [study views](skills/research-map/SKILL.md#study-views) for terminal and JSON access.

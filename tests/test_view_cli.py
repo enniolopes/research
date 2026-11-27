@@ -38,6 +38,52 @@ class ViewCliTests(unittest.TestCase):
             self.assertEqual(report["snapshot"]["id"], json.loads(fresh.stdout)["snapshot"]["id"])
             self.assertEqual(list(root.iterdir()), [document])
 
+    def test_external_review_resumes_from_root_and_traces_only_cited_sections(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            report = root / "RESEARCH-REVIEW.md"
+            report.write_text("## Pergunta\nQuem respondeu?\n## Conclusão\n75 lojas. "
+                              "[Dados](original.dat)\n## Incerteza\nCobertura parcial.\n"
+                              "## Próxima ação\nConferir a cobertura.")
+            def query(operation, *target):
+                answer = self.invoke(operation, *target, "--root", root, "--audience", "model",
+                                     "--format", "json")
+                return json.loads(answer.stdout)
+
+            status = query("status")
+            self.assertEqual(status["status"], "complete")
+            action, = (e for e in status["entries"] if e["kind"] == "next_action")
+            self.assertEqual(query("explain", action["selector"])["entries"][0]["text"],
+                             "Conferir a cobertura.")
+            impact = query("impact", "original.dat")
+            self.assertEqual(impact["impact"], "candidates")
+            self.assertEqual([e["kind"] for e in impact["entries"]], ["resource", "claim"])
+            (root / "RESEARCH.map").write_text("## Question\nSee `protocol.md#question`\n")
+            (root / "protocol.md").write_text("## Question\nWhich population?")
+            self.assertNotIn("75 lojas", str(query("status")))
+
+    def test_external_review_withheld_material_is_not_projected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / ".research").mkdir()
+            report = root / "RESEARCH-REVIEW.md"
+            report.write_text("## Conclusion\nRestricted finding [source](private.csv)\n"
+                              "## Next action\nCheck the protocol.\n")
+            rules = {"version": 1, "resources": [{"match": report.name, "class": "public"}],
+                     "rules": {"public": {"model_egress": True, "network_egress": False}}}
+            (root / ".research/policy.json").write_text(json.dumps(rules))
+            def status():
+                response = self.invoke("status", "--root", root, "--audience", "model", "--format", "json")
+                return json.loads(response.stdout)
+
+            answer = status()
+            self.assertEqual(answer["status"], "partial")
+            self.assertNotIn("Restricted finding", str(answer))
+            self.assertNotIn("private.csv", str(answer))
+            self.assertIn("Check the protocol", str(answer))
+            (root / "RESEARCH.map").write_text("Hidden native study")
+            self.assertNotIn("Check the protocol", str(status()))
+
     def test_unlinked_source_and_unknown_target_are_distinct(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

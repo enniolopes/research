@@ -12,3 +12,18 @@ Use for a third-party paper, report or historical study without this system's na
 Start the user-facing review with the question, conclusion allowed by available evidence, decisive support, main limitation and next resolving action. Follow with claim-level findings and exact locations. Overall verdicts must not conceal that different claims have different evidential status.
 
 Apply the discipline appropriate to the actual design. Do not impose observational reporting checklists on unrelated designs or claim expertise beyond the material inspected. Material unfamiliar methodology requires primary-source inspection or specialist review; localize that limit rather than blocking unrelated findings.
+
+## Resume an external review from the study directory
+
+When saving the current assessment in a study without native Research records, use
+`RESEARCH-REVIEW.md` at the study root. Update this report when the judgment changes.
+Use explicit headings such as “Question”, “Method”, “Conclusion”, “Uncertainty” and
+“Next action” (or “Pergunta”, “Método”, “Conclusão”, “Incerteza” and “Próxima ação”).
+Link each statement to its supporting local files with inline Markdown links.
+For an existing report, the root document can cite the detailed assessment in place.
+
+Run `research.py view status --root . --audience model` to resume. Use the returned
+selector with `view explain`, or `view impact PATH --root . --audience model` for a
+cited study-relative path. Impact shows the sections citing that path. This
+declaration alone does not verify the underlying data or their current contents.
+Native maps and supervised studies retain their existing visibility rules.

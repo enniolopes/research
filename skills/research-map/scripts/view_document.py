@@ -215,7 +215,38 @@ def review_entry(reader, report, document):
                         reported_document_locators=[f"page {page}" for page in pages])
 
 
-def collect(reader, document, review=None):
+REVIEW_FILENAME = "RESEARCH-REVIEW.md"
+
+
+def cited_resources(reader, source, excerpts):
+    """Index local inline citations as declarations at this report version, without reading targets."""
+    resources = {}
+    for excerpt in excerpts:
+        if excerpt["kind"] == "document":
+            continue
+        for link in INLINE_LINK.finditer(excerpt["text"]):
+            try:
+                dest = urlsplit(link[1] or link[2])
+                path = Path(unquote(dest.path))
+                if dest.scheme or dest.netloc or not path.parts or path.is_absolute():
+                    continue
+                if any(part.startswith(".") for part in path.parts) or not reader.permits(source.path.parent / path):
+                    continue
+            except (ValueError, OSError):
+                continue
+            name = path.as_posix()
+            if name == source.name:
+                continue
+            if name not in resources:
+                resources[name] = source.entry("resource", name, "citation:" + name,
+                                               aliases=[name], basis="path cited by review")
+            related = resources[name]["related"]
+            if excerpt["selector"] not in related:
+                related.append(excerpt["selector"])
+    return list(resources.values())
+
+
+def collect(reader, document, review=None, *, trace_citations=False):
     document = Path(document)
     source = read_source(reader, document, "document")
     if source is None:
@@ -235,6 +266,8 @@ def collect(reader, document, review=None):
         excerpts = list(document_entries(source, lines))
         entries.extend(excerpts)
         item["related"].extend(e["selector"] for e in excerpts)
+        if trace_citations:
+            entries.extend(cited_resources(reader, source, excerpts))
         if not excerpts:
             item["text"] = "\n".join(lines).strip()
     if review is None:
