@@ -246,6 +246,27 @@ class ViewCliTests(unittest.TestCase):
                     denied = json.loads(self.invoke("impact", "private.md", *args).stdout)
                     self.assertFalse(denied["entries"])
 
+    def test_impact_separates_citing_paragraphs_in_the_same_unclassified_section(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            study = root / "RESEARCH-STUDY.md"
+            paragraphs = "North recorded eleven [trips](north.md).\n\nSouth recorded seven [trips](south.md)."
+            for heading in ("## Routes", "Question: Which routes?"):
+                study.write_text(heading + "\n" + paragraphs)
+                for option, path in (("--root", root), ("--document", study)):
+                    with self.subTest(heading=heading, option=option):
+                        args = (option, path, "--audience", "model", "--format", "json")
+                        for target, locator, expected in (("north.md", "L2", "North recorded eleven"),
+                                                          ("south.md", "L4", "South recorded seven")):
+                            report = json.loads(self.invoke("impact", target, *args).stdout)
+                            passage, = [e for e in report["entries"] if e["kind"] == "document"]
+                            self.assertEqual(passage["locator"], locator)
+                            self.assertTrue(passage["text"].startswith(expected))
+                            self.assertNotIn("\n\n", passage["text"])
+                        if heading == "## Routes":
+                            explanation = json.loads(self.invoke("explain", "routes", *args).stdout)
+                            self.assertEqual(explanation["entries"][0]["text"], paragraphs)
+
     def test_impact_in_plain_text_keeps_unrelated_annotations_independent(self):
         with tempfile.TemporaryDirectory() as directory:
             study = Path(directory) / "account.md"
