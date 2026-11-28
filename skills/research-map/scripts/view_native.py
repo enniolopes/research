@@ -239,7 +239,7 @@ def map_facts(doc):
             if key == "deferred" and (m := DEFERRED_LINE.match(line)):
                 date, idea, condition = m.groups()
                 yield doc.entry("deferred", "Deferred idea", f"L{i}", f"{idea} — enters when: {condition}",
-                                basis="deferred after freeze", recorded_date=date, entry_condition=condition)
+                                basis="research map", recorded_date=date, entry_condition=condition)
             if key != "hypotheses" or not line.strip().startswith("|"):
                 continue
             cells = [c.strip() for c in line.strip().strip("|").split("|")]
