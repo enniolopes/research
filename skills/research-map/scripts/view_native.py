@@ -10,6 +10,7 @@ import contracts
 import epistemic
 from resources import git
 import validate
+from view_document import FIELD, prose_lines
 
 
 def local_path(root, name):
@@ -44,6 +45,8 @@ def visible_entries(reader, root, entries, controlled):
     for entry in entries:
         excerpt = entry["text"] + "\n" + json.dumps(entry.get("details", {}), ensure_ascii=False)
         names = validate.pointers_in(excerpt.splitlines())
+        if entry.get("details", {}).get("basis") == "recorded decision":
+            names.extend(decision_paths(entry["text"]))
         for match in re.finditer(r"\]\(([^)\s]+)\)", excerpt):
             target = match[1]
             if not target.startswith("#") and "://" not in target:
@@ -249,6 +252,77 @@ def map_facts(doc):
                                 refutation=refutation, recorded_state=state, source_pointer=pointer, basis="research map")
 
 
+def decision_blocks(doc):
+    """Recognize the validator's heading and list forms, keeping their source locators."""
+    lines = list(prose_lines(doc.lines))
+    start = None
+    for index, line in enumerate(lines):
+        decision = validate.DECISION_START.match(line)
+        heading = re.match(r"^(#{1,6})\s", line)
+        if start is not None and (decision or heading and len(heading[1]) <= depth):
+            yield start, ident, index, lines[start + 1:index]
+            start = None
+        if decision:
+            start, ident = index, "D-" + decision[1]
+            depth = len(heading[1]) if heading else 7
+    if start is not None:
+        yield start, ident, len(lines), lines[start + 1:]
+
+
+def decision_paths(text):
+    """Backticked study paths may include spaces, fragments or data-specific extensions."""
+    for token in re.findall(r"`([^`\n]+)`", text):
+        name = token.partition("#")[0]
+        if "://" not in name and ("/" in name or re.search(r"\.[a-zA-Z][\w-]*$", name)):
+            yield name
+
+
+def decision_entries(reader, root, doc, controlled):
+    """Project reasons and cited paths from this log, without inspecting the cited files."""
+    citations = {}
+    for index, ident, end, body in decision_blocks(doc):
+        fields = {}
+        active = None
+        for line in body:
+            field = FIELD.match(line)
+            label = field[1].strip("*_ ").casefold() if field else None
+            if label in {"rationale", "revision condition", "revise when", "supersedes", "decision"}:
+                active = label
+                opening = field[1][:2]
+                value = field[2]
+                if opening in {"**", "__"} and not field[1].endswith(opening):
+                    value = value.removeprefix(opening)
+                fields.setdefault(active, []).append(value.strip())
+            elif active is not None:
+                fields[active].append(line)
+        rationale = "\n".join(fields.get("rationale", [])).strip()
+        conditions = ["\n".join(fields[key]).strip() for key in ("revision condition", "revise when")
+                      if key in fields and any(line.strip() for line in fields[key])]
+        finding = doc.entry("finding", ident, f"L{index + 1}", "\n".join(doc.lines[index + 1:end]).strip(),
+                            [ident], basis="recorded decision")
+        if rationale:
+            finding["details"]["rationale"] = rationale
+        if conditions:
+            finding["details"]["revision_conditions"] = conditions
+        # A visible citation could disclose a withheld finding even when its target is public.
+        if controlled and not visible_entries(reader, root, [finding], controlled):
+            continue
+        yield finding
+        for name in decision_paths(rationale):
+            path = Path(name)
+            if path.is_absolute() or not path.parts or any(part.startswith(".") for part in path.parts):
+                continue
+            name = path.as_posix()
+            if name not in citations:
+                citations[name] = doc.entry("resource", name, f"citation:{name}",
+                                            "Path cited in a recorded rationale.", [name],
+                                            basis="decision log citation; source contents not inspected", cited_path=name)
+            related = citations[name]["related"]
+            if finding["selector"] not in related:
+                related.append(finding["selector"])
+    yield from citations.values()
+
+
 def claim_entries(doc):
     for match in epistemic.CLAIM.finditer(doc.text):
         claim, _, result, decides = match.groups()
@@ -406,11 +480,7 @@ def collect(reader, root):
                                               "\n".join(body).strip(), [key.upper()],
                                               basis="current analysis plan"))
     for decisions in native_files(reader, root, layout.get("decisions", [])):
-        for i, _, body in sections(decisions):
-            if match := validate.DECISION_START.match(decisions.lines[i]):
-                ident = "D-" + match[1]
-                entries.append(decisions.entry("finding", ident, f"L{i + 1}", "\n".join(body).strip(),
-                                               [ident], basis="recorded decision"))
+        entries.extend(decision_entries(reader, root, decisions, controlled))
     # Never open manuscript outcomes or result artifacts to fill an early status report.
     if not analysis_reached(doc.text):
         return visible_entries(reader, root, entries, controlled)

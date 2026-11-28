@@ -239,7 +239,7 @@ def cited_resources(reader, source, excerpts):
                 continue
             if name not in resources:
                 resources[name] = source.entry("resource", name, "citation:" + name,
-                                               aliases=[name], basis="path cited by review")
+                                               aliases=[name], basis="path cited by review", cited_path=name)
             related = resources[name]["related"]
             if excerpt["selector"] not in related:
                 related.append(excerpt["selector"])

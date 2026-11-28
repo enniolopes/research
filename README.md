@@ -54,7 +54,7 @@ For a review kept in its own directory, save the current assessment as `RESEARCH
 
 Replace the manuscript path with your file. Third-party or historical papers can also be reviewed without inventing a new protocol or execution history.
 
-From a status summary, you can ask “What evidence supports this conclusion?” or “The definition of this measure changed. Which conclusions should we revisit?” Research can trace the recorded dependencies and identify where a new judgment is needed. See the [study views](skills/research-map/SKILL.md#study-views) for terminal and JSON access.
+For each research question, the aim is to explain what the evidence warrants, why, and what could change that answer. Ask “Why do we interpret these times as scheduled departures?” or “The operator corrected its definitions. Which decisions relied on that file?” Research can trace a cited study file to the recorded reasoning and the observation that would reopen the decision. See the [study views](skills/research-map/SKILL.md#study-views) for terminal and JSON access.
 
 ## What to expect
 

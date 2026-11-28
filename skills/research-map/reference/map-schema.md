@@ -72,9 +72,11 @@ A decision is an append-only block:
 ```markdown
 ### D-<n> · YYYY-MM-DD · <title>
 <decision>
-Rationale: <basis>
+Rationale: <why the evidence warrants this decision, citing relevant study files in backticks>
 Revision condition: <what would reopen it, or why it is not revisable>
 ```
+
+A study-relative path in the rationale lets `view explain` locate the citation and `view impact` find decisions to reconsider. A citation identifies what the decision relied on. Checking the source and deciding whether the reasoning still holds are scientific tasks.
 
 After commit, revise only through a later decision with `Supersedes: D-<n>`.
 
