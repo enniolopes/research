@@ -17,6 +17,88 @@ class ViewCliTests(unittest.TestCase):
         return subprocess.run([sys.executable, str(CLI), "view", *map(str, args)],
                               capture_output=True, text=True)
 
+    def test_existing_file_selector_finds_a_later_rationale_citing_its_path(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "protocol.md").write_text("## Question\nWhich timetable?\n")
+            (root / "RESEARCH.map").write_text(
+                "## Layout\n- protocol: protocol.md\n- decisions: log.md\n"
+                "## Question\nTiming? → `protocol.md#question`\n")
+            log = root / "log.md"
+            log.touch()
+            manual = root / "manual.md"
+            manual.write_text("Definitions, edition 1.")
+
+            def impact(target):
+                return json.loads(self.invoke("impact", target, "--root", root, "--audience", "model",
+                                              "--format", "json").stdout)
+
+            initial = impact(manual.name)
+            self.assertEqual(initial["impact"], "no_declared_dependents")
+            selector = initial["target"]
+            log.write_text("### D-1 · Definition\nRationale: See `manual.md`.\n")
+            self.assertIn("D-1", [e["label"] for e in impact(selector)["entries"]])
+            manual.write_text("Definitions, edition 2.")
+            self.assertFalse(impact(selector)["entries"])
+            self.assertIn("D-1", [e["label"] for e in impact(manual.name)["entries"]])
+
+    def test_decision_citations_explain_and_limit_impact_before_analysis(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "RESEARCH.map").write_text(
+                "## Layout\n- protocol: protocol.md\n- decisions: decisions.md\n"
+                "## Question\nTiming? → `protocol.md#question`\n")
+            (root / "protocol.md").write_text("## Question\nAre buses late?\n")
+            (root / "decisions.md").write_text(
+                "### D-1 · Route B\nKeep the published timetable.\n"
+                "Rationale: The timetable is documented in `route-b.md`.\n"
+                "Revision condition: A corrected B timetable arrives.\n"
+                "### D-2 · Route C\n" + "Interpret the times as forecasts. " * 12 + "\n"
+                "Rationale: The operator distinguishes forecasts from departures in\n"
+                "At 10:30 the operator supplied `adendo.md#route-c`. See also `adendo.md`.\n"
+                "Revision condition: The operator provides the original timetable.\n"
+                "- **D-3 · Comparing routes**\nDefer the comparison.\n"
+                "Rationale: The classification in `adendo.md` differs across routes.\n"
+                "**Revise when:** Obtain comparable records.\n"
+                "### D-4 · Future work\nSeek observed trips.\n"
+                "Revision condition: We receive `adendo.md`.\n"
+                "### D-5 · Restricted decision\n"
+                "Rationale: Both `route-b.md` and `field notes.parquet` apply.\n")
+
+            def query(operation, *target):
+                response = self.invoke(operation, *target, "--root", root,
+                                       "--audience", "model", "--format", "json")
+                self.assertEqual(response.returncode, 0, response.stderr)
+                return json.loads(response.stdout)
+
+            report = query("impact", "adendo.md")
+            self.assertEqual([e["label"] for e in report["entries"] if e["kind"] == "finding"],
+                             ["D-2", "D-3"])
+            citation = report["entries"][0]
+            self.assertEqual(citation["source"], "decisions.md")
+            (root / "adendo.md").write_text("UNINSPECTED SOURCE CONTENT\n")
+            explanation = query("explain", "D-2")
+            self.assertIn(citation["selector"], [e["selector"] for e in explanation["entries"]])
+            self.assertNotIn("UNINSPECTED SOURCE CONTENT", str(explanation))
+            compact = next(e for e in query("status")["entries"] if e["label"] == "D-2")
+            self.assertIn("original timetable", str(compact["details"]["revision_conditions"]))
+            self.assertIn("adendo.md", str(compact["details"]["rationale"]))
+
+            (root / ".research").mkdir()
+            (root / ".research/policy.json").write_text(json.dumps({
+                "version": 1, "resources": [{"match": name, "class": "public"}
+                    for name in ("RESEARCH.map", "protocol.md", "decisions.md", "route-b.md")],
+                "rules": {"public": {"model_egress": True, "network_egress": False}}}))
+            limited = query("status")
+            self.assertEqual(limited["status"], "partial")
+            self.assertNotIn("adendo.md", str(limited))
+            self.assertNotIn("D-2", str(limited))
+            self.assertIn("D-1", str(limited))
+            self.assertNotIn("field notes.parquet", str(limited))
+            traced = query("impact", "route-b.md")
+            self.assertEqual([e["label"] for e in traced["entries"] if e["kind"] == "finding"], ["D-1"])
+            self.assertFalse(query("impact", citation["selector"])["entries"])
+
     def test_standalone_document_in_two_processes(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

@@ -189,7 +189,7 @@ After commit, change it only by a later block with `Supersedes: D-<k>`.
 
 ## Reporting to the user
 
-Keep system mechanics mostly invisible. Lead with the question, permitted conclusion, decisive evidence, main limitation and next useful action; link to authoritative detail instead of copying a second report into the map. Do not require the user to memorize internal commands. When a preflight blocks an action, state what evidence/decision is missing and the legitimate route forward.
+Lead with what the study can currently answer. Show the observation or source, why it warrants that answer, and where the reasoning stops. If a consequential uncertainty remains, name the feasible observation that would change the answer and the decision it would inform. When the question is still taking shape, say what is missing to investigate it. Ground this account in the existing artifacts and their recorded conditions for revision. Link to the authoritative detail. If a preflight blocks the work, explain the missing evidence or decision and the legitimate route forward.
 
 A research is complete when every hypothesis has a terminal state, material claims passed current separate-context adversarial review, publication requirements passed, and the map records the final state.
 

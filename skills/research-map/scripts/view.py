@@ -37,16 +37,22 @@ def connected(entries, start, downstream):
     return seen
 
 
+def preview(text):
+    return text if len(text) <= 300 else text[:299].rstrip() + "…"
+
+
 def summary(entry):
     keys = ("selector", "kind", "label", "source", "locator", "version", "aliases")
     result = {key: entry[key] for key in keys if key in entry}
     text = entry.get("text", "")
     if text:
-        result["text"] = text if len(text) <= 300 else text[:299].rstrip() + "…"
+        result["text"] = preview(text)
     fields = ("basis", "binding", "state", "recorded_state", "disposition", "review", "verdict",
               "judgment", "support_status", "limits", "revision_conditions", "refutation", "missing_labels")
     details = entry.get("details", {})
     if retained := {key: details[key] for key in fields if details.get(key)}:
+        if entry["kind"] == "finding" and details.get("rationale"):
+            retained["rationale"] = preview(details["rationale"])
         result["details"] = retained
     return result
 
@@ -99,7 +105,9 @@ def explicit_source(reader, root, target, entries):
     return {"selector": selector, "kind": "document", "label": name, "source": name,
             "version": version, "aliases": [name], "locator": "file",
             "details": {"basis": "explicitly inspected study file"},
-            "related": [e["selector"] for e in entries if e["source"] == name and e.get("version") == version]}
+            "related": [e["selector"] for e in entries
+                        if (e["source"] == name and e.get("version") == version)
+                        or e.get("details", {}).get("cited_path") == name]}
 
 
 def select(entries, operation, target):
