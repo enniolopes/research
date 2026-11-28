@@ -235,8 +235,6 @@ def cited_resources(reader, source, excerpts):
     """Index local inline citations as declarations at this document version, without reading targets."""
     resources = {}
     for excerpt in excerpts:
-        if excerpt["kind"] == "document":
-            continue
         for link in INLINE_LINK.finditer(excerpt["text"]):
             try:
                 dest = urlsplit(link[1] or link[2])
@@ -278,13 +276,20 @@ def collect(reader, document, review=None, *, trace_citations=True):
         reader.partial("Document text is unavailable; inspect the source for locators and passages.")
     else:
         excerpts = list(document_entries(source, lines))
+        if all(e["details"]["basis"] == "author annotation" for e in excerpts):
+            item["text"] = "\n".join(lines).strip()
+            # Target the citing paragraph. An edge to the file would also reach unrelated claims.
+            if trace_citations:
+                start = 0
+                for end in range(len(lines) + 1):
+                    if end == len(lines) or not lines[end].strip():
+                        if INLINE_LINK.search("\n".join(lines[start:end])):
+                            excerpts.extend(unclassified_passage(source, lines, start, end))
+                        start = end + 1
         entries.extend(excerpts)
         item["related"].extend(e["selector"] for e in excerpts)
         if trace_citations:
             entries.extend(cited_resources(reader, source, excerpts))
-        # Inline claim annotations can coexist with otherwise unstructured prose.
-        if all(e["details"]["basis"] == "author annotation" for e in excerpts):
-            item["text"] = "\n".join(lines).strip()
     if review is None:
         item["details"]["review"] = "No separate review supplied."
         return entries

@@ -220,6 +220,42 @@ class ViewCliTests(unittest.TestCase):
                 self.assertFalse(query("impact", "hidden.txt", option, path)["entries"])
                 self.assertIn("Public reading", str(query("impact", "open.txt", option, path)))
 
+    def test_impact_targets_visible_prose_that_cites_the_changed_source(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            study = root / "RESEARCH-STUDY.md"
+            (root / ".research").mkdir()
+            (root / ".research/policy.json").write_text(json.dumps({
+                "version": 1, "resources": [{"match": path, "class": "public"}
+                                             for path in (study.name, "source.md", "other.md")],
+                "rules": {"public": {"model_egress": True, "network_egress": False}}}))
+            study.write_text("Recheck the [source](source.md).\n"
+                             "Question: Which account?\nKeep the [other account](other.md).\n"
+                             "## Field notes\nWithhold [private](private.md) and [source](source.md).\n")
+            for option, path in (("--root", root), ("--document", study)):
+                with self.subTest(option=option):
+                    args = (option, path, "--audience", "model", "--format", "json")
+                    status = json.loads(self.invoke("status", *args).stdout)
+                    passages = {e["locator"]: e["selector"] for e in status["entries"]}
+                    for target, locator in (("source.md", "L1"), ("other.md", "L3")):
+                        impact = json.loads(self.invoke("impact", target, *args).stdout)
+                        self.assertEqual(impact["status"], "partial")
+                        self.assertEqual([e["selector"] for e in impact["entries"]
+                                          if e["kind"] == "document"], [passages[locator]])
+                        self.assertNotIn("private.md", str(impact))
+                    denied = json.loads(self.invoke("impact", "private.md", *args).stdout)
+                    self.assertFalse(denied["entries"])
+
+    def test_impact_in_plain_text_keeps_unrelated_annotations_independent(self):
+        with tempfile.TemporaryDirectory() as directory:
+            study = Path(directory) / "account.md"
+            study.write_text("Recheck the [source](source.md).\n\n"
+                             "A separate finding. <!-- claim:C1 result:R1 -->\n")
+            args = ("--document", study, "--audience", "model", "--format", "json")
+            report = json.loads(self.invoke("impact", "source.md", *args).stdout)
+            self.assertEqual(report.get("impact"), "candidates")
+            self.assertEqual([e["locator"] for e in report["entries"]], ["citation:source.md", "L1"])
+
     def test_external_review_resumes_from_root_and_traces_only_cited_sections(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
