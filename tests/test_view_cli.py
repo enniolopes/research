@@ -120,6 +120,68 @@ class ViewCliTests(unittest.TestCase):
             self.assertEqual(report["snapshot"]["id"], json.loads(fresh.stdout)["snapshot"]["id"])
             self.assertEqual(list(root.iterdir()), [document])
 
+    def test_documentary_study_resumes_and_revises_only_cited_interpretation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            study = root / "RESEARCH-STUDY.md"
+            study.write_text(
+                "## Pergunta\nComo os leitores descrevem o acesso?\n"
+                "## Método\nLeitura comparativa de dois relatos sintéticos.\n"
+                "## C1\nUma leitora descreve a distância como barreira. [Trecho A](a.md#p1)\n"
+                "## C2\nOutro leitor relata dificuldade com o horário. [Trecho B](b.md#p2)\n"
+                "## Próxima ação\nConferir a atribuição das falas.\n")
+
+            def query(operation, *args):
+                response = self.invoke(operation, *args, "--root", root, "--audience", "model",
+                                       "--format", "json")
+                return json.loads(response.stdout)
+
+            status = query("status")
+            self.assertEqual(status["status"], "complete")
+            self.assertIn("Conferir a atribuição", str(status["entries"]))
+            original = query("explain", "C1")["target"]
+            affected = query("impact", "a.md")
+            self.assertEqual([e["aliases"][-1] for e in affected["entries"] if e["kind"] == "claim"], ["C1"])
+            self.assertIn("b.md", [e["label"] for e in query("explain", "C2")["entries"]])
+
+            study.write_text(study.read_text().replace("Uma leitora descreve a distância como barreira.",
+                "A distância aparece na pergunta da entrevistadora. A resposta é inconclusiva."))
+            self.assertFalse(query("explain", original)["entries"])
+            self.assertIn("inconclusiva", str(query("explain", "C1")["entries"]))
+            self.assertIn("dificuldade com o horário", str(query("explain", "C2")["entries"]))
+            self.assertEqual(list(root.iterdir()), [study])
+
+    def test_documentary_study_respects_source_permissions_and_existing_root_owner(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            study = root / "RESEARCH-STUDY.md"
+            study.write_text("## C1\nPrivate reading [interview](hidden.txt).\n"
+                             "## C2\nPublic reading [interview](open.txt).\n")
+            report = root / "RESEARCH-REVIEW.md"
+            report.write_text("## Conclusion\nSeparate review.\n")
+
+            def query(operation, *args):
+                response = self.invoke(operation, *args, "--audience", "model", "--format", "json")
+                return json.loads(response.stdout)
+
+            self.assertIn("Separate review.", str(query("status", "--root", root)))
+            policy = root / ".research/policy.json"
+            policy.parent.mkdir()
+            policy.write_text(json.dumps({
+                "version": 1, "resources": [{"match": path, "class": "public"}
+                                             for path in (study.name, "open.txt")],
+                "rules": {"public": {"model_egress": True, "network_egress": False}}}))
+            self.assertFalse(query("status", "--root", root)["entries"])
+            report.unlink()
+            for option, path in (("--document", study), ("--root", root)):
+                result = query("status", option, path)
+                self.assertEqual(result["status"], "partial")
+                self.assertNotIn("Private reading", str(result))
+                self.assertNotIn("hidden.txt", str(result))
+                self.assertIn("Public reading", str(result))
+                self.assertFalse(query("impact", "hidden.txt", option, path)["entries"])
+                self.assertIn("Public reading", str(query("impact", "open.txt", option, path)))
+
     def test_external_review_resumes_from_root_and_traces_only_cited_sections(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

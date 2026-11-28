@@ -216,10 +216,11 @@ def review_entry(reader, report, document):
 
 
 REVIEW_FILENAME = "RESEARCH-REVIEW.md"
+STUDY_FILENAME = "RESEARCH-STUDY.md"
 
 
 def cited_resources(reader, source, excerpts):
-    """Index local inline citations as declarations at this report version, without reading targets."""
+    """Index local inline citations as declarations at this document version, without reading targets."""
     resources = {}
     for excerpt in excerpts:
         if excerpt["kind"] == "document":
@@ -239,20 +240,21 @@ def cited_resources(reader, source, excerpts):
                 continue
             if name not in resources:
                 resources[name] = source.entry("resource", name, "citation:" + name,
-                                               aliases=[name], basis="path cited by review", cited_path=name)
+                                               aliases=[name], basis="local path cited in the text", cited_path=name)
             related = resources[name]["related"]
             if excerpt["selector"] not in related:
                 related.append(excerpt["selector"])
     return list(resources.values())
 
 
-def collect(reader, document, review=None, *, trace_citations=False):
+def collect(reader, document, review=None, *, trace_citations=True):
     document = Path(document)
     source = read_source(reader, document, "document")
     if source is None:
         # A permitted review can contain quotations copied from the withheld manuscript.
         return []
-    item = source.entry("document", "External manuscript", "file", aliases=[source.name],
+    label = "Documentary study" if document.name == STUDY_FILENAME else "External manuscript"
+    item = source.entry("document", label, "file", aliases=[source.name],
                         basis="supplied document bytes")
     entries = [item]
     lines = source.lines()

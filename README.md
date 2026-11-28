@@ -1,6 +1,6 @@
 # Research
 
-Conduct an empirical study from question to manuscript in Claude Code or Codex CLI with explicit scientific commitments, traceable results and separate-context review. Its current focus is observational quantitative research, especially administrative data.
+Conduct an empirical study from question to manuscript in Claude Code or Codex CLI with explicit scientific commitments, traceable results and separate-context review. The quantitative workflow focuses on observational studies, especially administrative data. You can also start a documentary inquiry into how particular sources describe an experience or event.
 
 ## Start a study
 
@@ -58,6 +58,8 @@ Review the paper before submission.
 ```
 
 `scientific-method` coordinates the internal skills, validators and reviewer. You do not need to invoke each component manually. Explorer is already included.
+
+For example, ask “How do these interviewees describe access to the library?” Research can keep the question, source passages, interpretations and next step together in `RESEARCH-STUDY.md`. In a fresh session ask for status, or ask which interpretations cited a corrected interview. Each interpretation can be revised on its own. [Documentary inquiry](skills/scientific-method/reference/inference-and-revision.md#start-a-documentary-inquiry)
 
 ## Continue or review
 

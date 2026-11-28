@@ -2,6 +2,16 @@
 
 Read when a claim interprets a measure, attributes a mechanism, compares explanations, or must be revised after evidence changes. Store the work in the existing protocol/analysis plan, manuscript inference and decision log; do not create a parallel knowledge ledger.
 
+## Start a documentary inquiry
+
+Use this route when the question concerns the meaning of an identifiable set of sources. A numerical question such as how often a population holds a view still needs an appropriate sample and design, even when the input consists of interviews.
+
+Start with the question, the available corpus and why those sources can speak to it. If the sources have yet to be obtained, record the gap and the next feasible action. Keep the working account in `RESEARCH-STUDY.md` at the study root. In an existing project, resume its current records before choosing where to write. Use headings such as Question, Method, C1, C2, Uncertainty and Next action when there is something to report. Early work may consist of just the question and next action.
+
+For each material interpretation, cite the passage using an inline Markdown link to the local source and a locator such as the speaker turn or section. Explain whose words they are, your reasoning and its scope. Check a conflicting passage or plausible alternative when available. Cite all material origins in the section that uses them so the study policy can be applied. Use authorized material throughout. Version the account and the sources or their permitted references in Git.
+
+On a correction, use the study view's impact query to locate candidate interpretations. Inspect the corrected passage in context before updating the account. Preserve separately supported readings and leave a reason for the revision in the study history. Seek separate-context review before releasing material claims. The study view supports navigation here; quantitative validators and run receipts apply when there is an actual quantitative analysis.
+
 ## Choose criteria for the question and design
 
 When a methodological choice could change the answer, identify the claim at stake and what would justify it under the study's approach. The National Research Council develops two useful principles for empirical education research: choose a method capable of investigating the question and make the reasoning from evidence to conclusion explicit. In qualitative psychology, Levitt and colleagues assess methodological integrity through fidelity to the phenomenon and usefulness for the study's goals. [National Research Council, chapter 3](https://www.nationalacademies.org/read/10236/chapter/5) · [Levitt et al.](https://doi.org/10.1037/qup0000082)

@@ -4,7 +4,7 @@ description: Operational memory and mechanical validation across sessions for on
 when_to_use: Use internally at the start of an existing research session, after gate/hypothesis/registration/corrected-number changes, and before commits or release. Direct triggers include resume, status, validate, update the map, or initialize an existing research.
 license: CC-BY-NC-4.0
 metadata:
-  version: 0.11.1
+  version: 0.11.2
 argument-hint: 'status|init|resume|update|validate [path to study]'
 ---
 
@@ -55,6 +55,8 @@ python3 "${RESEARCH_MAP_DIR}/scripts/research.py" view explain C1 --root . --aud
 ```
 
 The status field describes query coverage. A scientific judgment needs a source, scope and author. Use the selector from the response when a short ID identifies several occurrences. For a changed study resource, pass its selector to `view impact` with the same root and audience. Inspect the reported support paths, remaining evidence and coverage before recording a revised judgment. A newly discovered dependency may need to be recorded first.
+
+For a documentary inquiry, `view status --root .` resumes `RESEARCH-STUDY.md` when the root has no native state or external review. When several documents coexist, select the intended file with `--document FILE`; `view impact PATH --document FILE` traces inline citations relative to that file. Keep `--audience model` for model-facing reads.
 
 For a standalone manuscript, use `view status --document FILE --audience model` or `view explain SELECTOR --document FILE --audience model`. The dispatcher reads UTF-8 text directly. An optional `--review REPORT` supplies a separate text review whose first nonblank line is `Document-SHA256: <64 hex digits>` for the exact manuscript bytes. Distinguish what the author reported, what the reviewer reconstructed and what a recorded execution reproduced. A missing judgment is a gap. When the user requests an assessment, follow the appropriate study or [external review procedure](../scientific-method/reference/external-review.md). For a PDF review, inspect authorized pages and cite their locations.
 

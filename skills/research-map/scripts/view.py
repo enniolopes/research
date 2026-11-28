@@ -190,11 +190,15 @@ def query(args):
                 entries.extend(journal_entries(reader, root))
                 link_inquiry_executions(entries, reader.journal_complete)
             if not (maps or projects):
-                reports = [] if reader.issues else reader.watch_dir(root, view_document.REVIEW_FILENAME)
-                if reports:
-                    entries.extend(view_document.collect(reader, reports[0], trace_citations=True))
+                # Keep existing root ownership and stop on a withheld higher-priority source.
+                for filename in (view_document.REVIEW_FILENAME, view_document.STUDY_FILENAME):
+                    if reader.issues:
+                        break
+                    if documents := reader.watch_dir(root, filename):
+                        entries.extend(view_document.collect(reader, documents[0]))
+                        break
                 else:
-                    reader.partial("No readable study map, supervision records or RESEARCH-REVIEW.md. For a manuscript use --document.")
+                    reader.partial("No recorded study or review located. For a manuscript use --document.")
             if args.target and (args.operation == "impact" or args.target.startswith("study-file:")):
                 if not any(args.target == e["selector"] or args.target in e.get("aliases", []) for e in entries):
                     if item := explicit_source(reader, root, args.target, entries):
@@ -377,8 +381,6 @@ def main(argv=None):
         parser.error("explain and impact require a target; status takes no target")
     if args.review and not args.document:
         parser.error("--review requires --document")
-    if args.document and args.operation == "impact":
-        parser.error("impact requires --root")
     for name in ("root", "document", "review"):
         path = getattr(args, name)
         if path is not None:
