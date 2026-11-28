@@ -1,16 +1,35 @@
 # Research
 
-A Claude Code plugin for carrying an empirical study from question to manuscript with explicit scientific commitments, traceable results and separate-context review. Its current focus is observational quantitative research, especially administrative data.
+Conduct an empirical study from question to manuscript in Claude Code or Codex CLI with explicit scientific commitments, traceable results and separate-context review. Its current focus is observational quantitative research, especially administrative data.
 
 ## Start a study
 
-You need Claude Code, Git and Python 3.10+. Work in a Git repository for **your study**, separate from this plugin's source repository. For a new study, run in a terminal:
+Use Git, Python 3.10+ and either Claude Code or a Codex CLI with `codex plugin marketplace add`. Work in a Git repository for **your study**, separate from this plugin's source repository. For a new study, run in a terminal:
 
 ```sh
 mkdir my-study
 cd my-study
 git init
 ```
+
+### Codex CLI (GPT)
+
+Install from the terminal once:
+
+```sh
+codex plugin marketplace add enniolopes/research
+codex plugin add research@research
+```
+
+Run `codex` in the study directory. Select the installed `research:scientific-method` skill from the skills menu or name it in the prompt:
+
+```text
+Use $research:scientific-method to start a study. Is travel time to school associated with absenteeism?
+```
+
+In a fresh session in the same directory, ask `Use $research:scientific-method for status`. An existing study can move between Codex and Claude Code by opening the same repository with the plugin installed in each host. Both read the same records. Availability of separate reviewers, source access and execution tools depends on the host.
+
+### Claude Code
 
 Open Claude Code in that directory. Add the marketplace and install Research once:
 
@@ -42,7 +61,7 @@ Review the paper before submission.
 
 ## Continue or review
 
-Open Claude Code in the same study repository. Use:
+Open the same study repository in your host. In Claude Code, use:
 
 | What you want | Command |
 |---|---|
@@ -70,7 +89,7 @@ For versioned quality criteria, claim adoption/revision and checks over the actu
 
 For manual validation or computational replay, see the [research-map guide](skills/research-map/SKILL.md). The agent normally invokes these tools when needed.
 
-If you want only Explorer, add the marketplace above and install `explorer@research` instead of `research@research`.
+In Claude Code, if you want only Explorer, add the marketplace and install `explorer@research` instead of `research@research`.
 
 ## Develop the plugin
 

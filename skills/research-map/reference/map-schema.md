@@ -50,7 +50,7 @@ Exactly one row each for `1A`, `1B`, and `2` through `8`. States are `pending | 
 
 ## Deferred
 
-Each retained post-freeze idea is durable:
+Record ideas set aside during exploration or after freeze with their date and condition for reconsideration:
 
 ```text
 - YYYY-MM-DD: <idea> — enters when: <condition>

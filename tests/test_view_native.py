@@ -190,7 +190,8 @@ class NativeStudyTests(unittest.TestCase):
         resumed = invoke("explain", idea["selector"])["entries"][0]
         self.assertIn("Check attrition", resumed["text"])
         self.assertEqual(resumed["details"]["entry_condition"], "a follow-up sample arrives")
-        self.assertEqual(resumed["details"]["basis"], "deferred after freeze")
+        self.assertEqual(resumed["details"]["basis"], "research map")
+        self.assertEqual(resumed["details"]["recorded_date"], "2026-09-28")
         self.assertFalse(resumed["related"])
         self.completed()
         self.assertTrue(view_native.analysis_reached(path.read_text()))

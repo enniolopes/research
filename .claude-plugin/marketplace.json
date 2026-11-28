@@ -1,6 +1,6 @@
 {
   "name": "research",
-  "description": "Standalone research system for Claude Code.",
+  "description": "Empirical research tools for Claude Code and Codex CLI.",
   "owner": {
     "name": "Ennio Politi Lopes",
     "url": "https://github.com/enniolopes"
@@ -9,7 +9,7 @@
     {
       "name": "research",
       "source": ".",
-      "version": "0.11.0",
+      "version": "0.11.1",
       "strict": false,
       "description": "Epistemic control for empirical research with prospective scientific/executable commitments, bounded semantic assessments, capability policy, append-only provenance and adversarial review."
     },

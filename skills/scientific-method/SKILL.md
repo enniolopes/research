@@ -4,7 +4,7 @@ description: "Orchestrate observational quantitative research as an epistemic co
 when_to_use: Use to start or continue a research, check status, review a manuscript, and before fitting a model, changing a frozen plan, citing a source, reporting a material result, writing a claim or publishing. Also use when a new hypothesis or method appears after data exposure or protocol freeze.
 license: CC-BY-NC-4.0
 metadata:
-  version: 0.11.0
+  version: 0.11.1
 argument-hint: '<start <question> | status | review [manuscript] | replay RUN-<n> | what you want to do>'
 ---
 
@@ -13,6 +13,8 @@ argument-hint: '<start <question> | status | review [manuscript] | replay RUN-<n
 Own the epistemic lifecycle of an empirical research project. Scope: observational quantitative research with administrative data. Other designs may reuse the kernel, but phase procedures in this version are written for this scope.
 
 This is the public entry point. The user talks to this skill; internal skills and agents are invoked as needed. Do not make the user operate the architecture.
+
+Keep the study as the working directory. Locate sibling skills, scripts and agent instructions relative to this installed skill. A host that supports a named role can invoke it directly. On other hosts, use a fresh context with the installed role instructions and only the inputs permitted for that role. Record the actual provider and context. When the required capability is unavailable, report the missing review or exploration.
 
 ## Five laws
 
@@ -42,7 +44,7 @@ The eight research phases below remain the lifecycle/navigation layer. Preflight
 
 ## Arguments and session UX
 
-- `start <question>` — start phase 1, initialize/resume memory, then proceed through the smallest next action.
+- `start <question>` — start phase 1. In a new study, use the supplied question and available material to establish the protocol question and first material decision, then initialize the map from them with one concrete next action. In an existing study, resume its recorded work before adding a question. Preserve its prior decisions.
 - `status` — run `view status --root . --audience model` directly through the installed research-map dispatcher. For a standalone manuscript, use `--document FILE` in place of `--root .`. Summarize the question, recorded conclusion, uncertainty and next action from the returned entries. Use the same audience for explanation and impact queries. [Study views](../research-map/SKILL.md#study-views)
 - `review [path]` — run phase 7 for native work; use `reference/external-review.md` for third-party or historical work without native artifacts.
 - `replay RUN-<n>` — invoke the research-map replay helper when the run records a replay recipe; report `EXACT | DRIFT | ERROR | NOT_VERIFIED` without treating replay status as scientific truth.
