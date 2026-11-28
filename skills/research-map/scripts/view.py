@@ -60,11 +60,11 @@ def summary(entry):
 def overview(entries, has_inquiries=False):
     # Pointers keep the compact reading and the detailed entries in agreement.
     groups = [
-        ("Question", {"question"}, "No explicit research question located."),
-        ("Design and hypotheses", {"method", "hypothesis"}, "No explicit design or hypothesis located."),
-        ("Claims and decisions", {"claim", "decision"}, "No conclusion located in the inspected material."),
-        ("Assessment and uncertainty", {"uncertainty", "finding", "review"}, "No assessment or uncertainty located."),
-        ("Next action", {"next_action"}, "No next action recorded in the inspected material."),
+        ("Question", {"question"}, "No question indexed here."),
+        ("Design and hypotheses", {"method", "hypothesis"}, "No design or hypothesis indexed here."),
+        ("Claims and decisions", {"claim", "decision"}, "No claim or decision indexed here."),
+        ("Assessment and uncertainty", {"uncertainty", "finding", "review"}, "No assessment or uncertainty indexed here."),
+        ("Next action", {"next_action"}, "No next action indexed here."),
     ]
     result = []
     for title, kinds, gap in groups:
@@ -74,6 +74,9 @@ def overview(entries, has_inquiries=False):
         selectors = [e["selector"] for e in members]
         covered_by_inquiry = has_inquiries and title in ("Question", "Next action")
         result.append({"title": title, "selectors": selectors, "gap": None if selectors or covered_by_inquiry else gap})
+    passages = [e["selector"] for e in entries if e["kind"] == "document" and e.get("text")]
+    if passages:
+        result.append({"title": "Source passages", "selectors": passages, "gap": None})
     return result
 
 

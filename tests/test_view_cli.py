@@ -120,6 +120,44 @@ class ViewCliTests(unittest.TestCase):
             self.assertEqual(report["snapshot"]["id"], json.loads(fresh.stdout)["snapshot"]["id"])
             self.assertEqual(list(root.iterdir()), [document])
 
+    def test_resume_follows_unclassified_prose_beyond_the_status_preview(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            document = root / "RESEARCH-STUDY.md"
+            decision = "Encerrar a contagem e conferir a origem do segundo relato."
+            document.write_text("A comparação só vale para os relatos disponíveis.\n\n"
+                                "## Como interpretar a diferença?\n" + "Contexto. " * 40 + decision)
+            args = ("--root", root, "--audience", "model", "--format", "json")
+            status = json.loads(self.invoke("status", *args).stdout)
+            groups = {g["title"]: g for g in status["overview"]}
+            self.assertFalse(groups["Next action"]["selectors"])
+            self.assertNotIn("No next action recorded", groups["Next action"]["gap"])
+            entries = {e["selector"]: e for e in status["entries"]}
+            passages = [entries[key] for key in groups["Source passages"]["selectors"]]
+            self.assertEqual([e["locator"] for e in passages], ["L1", "L3"])
+            self.assertNotIn(decision, str(status))
+            explanation = json.loads(self.invoke("explain", passages[1]["selector"], *args).stdout)
+            self.assertIn(decision, explanation["entries"][0]["text"])
+            self.assertEqual(passages[1]["version"], explanation["entries"][0]["version"])
+
+    def test_unclassified_prose_survives_inline_fields_and_claim_annotations(self):
+        with tempfile.TemporaryDirectory() as directory:
+            document = Path(directory) / "account.md"
+            args = ("--document", document, "--audience", "model", "--format", "json")
+            for body, expected in [
+                ("Question: Which account?\n\nRevisit the attribution.\n## Archive\nFiled.",
+                 "Revisit the attribution."),
+                ("Earlier account.\nThey agreed. <!-- claim:C1 result:R1 -->\n\nRevisit the attribution.",
+                 "Earlier account.\nThey agreed. <!-- claim:C1 result:R1 -->\n\nRevisit the attribution."),
+            ]:
+                with self.subTest(body=body):
+                    document.write_text(body)
+                    status = json.loads(self.invoke("status", *args).stdout)
+                    passages = [e for e in status["entries"] if e["kind"] == "document" and e.get("text")]
+                    self.assertTrue(passages)
+                    full = json.loads(self.invoke("explain", passages[0]["selector"], *args).stdout)
+                    self.assertEqual(full["entries"][0]["text"], expected)
+
     def test_documentary_study_resumes_and_revises_only_cited_interpretation(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -181,6 +219,63 @@ class ViewCliTests(unittest.TestCase):
                 self.assertIn("Public reading", str(result))
                 self.assertFalse(query("impact", "hidden.txt", option, path)["entries"])
                 self.assertIn("Public reading", str(query("impact", "open.txt", option, path)))
+
+    def test_impact_targets_visible_prose_that_cites_the_changed_source(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            study = root / "RESEARCH-STUDY.md"
+            (root / ".research").mkdir()
+            (root / ".research/policy.json").write_text(json.dumps({
+                "version": 1, "resources": [{"match": path, "class": "public"}
+                                             for path in (study.name, "source.md", "other.md")],
+                "rules": {"public": {"model_egress": True, "network_egress": False}}}))
+            study.write_text("Recheck the [source](source.md).\n"
+                             "Question: Which account?\nKeep the [other account](other.md).\n"
+                             "## Field notes\nWithhold [private](private.md) and [source](source.md).\n")
+            for option, path in (("--root", root), ("--document", study)):
+                with self.subTest(option=option):
+                    args = (option, path, "--audience", "model", "--format", "json")
+                    status = json.loads(self.invoke("status", *args).stdout)
+                    passages = {e["locator"]: e["selector"] for e in status["entries"]}
+                    for target, locator in (("source.md", "L1"), ("other.md", "L3")):
+                        impact = json.loads(self.invoke("impact", target, *args).stdout)
+                        self.assertEqual(impact["status"], "partial")
+                        self.assertEqual([e["selector"] for e in impact["entries"]
+                                          if e["kind"] == "document"], [passages[locator]])
+                        self.assertNotIn("private.md", str(impact))
+                    denied = json.loads(self.invoke("impact", "private.md", *args).stdout)
+                    self.assertFalse(denied["entries"])
+
+    def test_impact_separates_citing_paragraphs_in_the_same_unclassified_section(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            study = root / "RESEARCH-STUDY.md"
+            paragraphs = "North recorded eleven [trips](north.md).\n\nSouth recorded seven [trips](south.md)."
+            for heading in ("## Routes", "Question: Which routes?"):
+                study.write_text(heading + "\n" + paragraphs)
+                for option, path in (("--root", root), ("--document", study)):
+                    with self.subTest(heading=heading, option=option):
+                        args = (option, path, "--audience", "model", "--format", "json")
+                        for target, locator, expected in (("north.md", "L2", "North recorded eleven"),
+                                                          ("south.md", "L4", "South recorded seven")):
+                            report = json.loads(self.invoke("impact", target, *args).stdout)
+                            passage, = [e for e in report["entries"] if e["kind"] == "document"]
+                            self.assertEqual(passage["locator"], locator)
+                            self.assertTrue(passage["text"].startswith(expected))
+                            self.assertNotIn("\n\n", passage["text"])
+                        if heading == "## Routes":
+                            explanation = json.loads(self.invoke("explain", "routes", *args).stdout)
+                            self.assertEqual(explanation["entries"][0]["text"], paragraphs)
+
+    def test_impact_in_plain_text_keeps_unrelated_annotations_independent(self):
+        with tempfile.TemporaryDirectory() as directory:
+            study = Path(directory) / "account.md"
+            study.write_text("Recheck the [source](source.md).\n\n"
+                             "A separate finding. <!-- claim:C1 result:R1 -->\n")
+            args = ("--document", study, "--audience", "model", "--format", "json")
+            report = json.loads(self.invoke("impact", "source.md", *args).stdout)
+            self.assertEqual(report.get("impact"), "candidates")
+            self.assertEqual([e["locator"] for e in report["entries"]], ["citation:source.md", "L1"])
 
     def test_external_review_resumes_from_root_and_traces_only_cited_sections(self):
         with tempfile.TemporaryDirectory() as directory:

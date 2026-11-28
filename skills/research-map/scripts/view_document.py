@@ -140,6 +140,21 @@ def visible_lines(reader, source, lines):
     return filtered, withheld
 
 
+def prose_passages(source, lines, start, end):
+    for boundary in range(start, end + 1):
+        if boundary < end and lines[boundary].strip():
+            continue
+        if start < boundary:
+            locator = f"L{start + 1}"
+            yield source.entry("document", f"Author — passage at {locator}", locator,
+                               text="\n".join(lines[start:boundary]).strip(), basis="author-reported text")
+        start = boundary + 1
+
+
+def citing_passages(source, lines, start, end):
+    return [p for p in prose_passages(source, lines, start, end) if INLINE_LINK.search(p["text"])]
+
+
 def document_entries(source, lines):
     """Index explicit source structure. Source prose is never a reviewer verdict."""
     blocks = []
@@ -168,6 +183,8 @@ def document_entries(source, lines):
             yield source.entry("claim", f"Author — {claim.upper()}", f"{locator}:{annotation.start() + 1}",
                                text=excerpt, aliases=[claim.upper()], basis="author annotation",
                                reported_result=result.upper(), reported_hypothesis=decides or None)
+    if blocks:
+        yield from prose_passages(source, lines, 0, blocks[0][0])
     for position, (index, title, anchor, value) in enumerate(blocks):
         end = blocks[position + 1][0] if position + 1 < len(blocks) else len(lines)
         text = value if value is not None else "\n".join(lines[index + 1:end]).strip()
@@ -175,8 +192,16 @@ def document_entries(source, lines):
         aliases = [f"{source.name}#{anchor}", anchor]
         if re.fullmatch(r"[CH]\d+", title, re.I) and title.upper() not in aliases:
             aliases.append(title.upper())
-        yield source.entry(kind, f"Author — {title}", f"L{index + 1}", text=text,
-                           aliases=aliases, basis="author-reported text")
+        section = source.entry(kind, f"Author — {title}", f"L{index + 1}", text=text,
+                               aliases=aliases, basis="author-reported text")
+        passages = []
+        if kind == "document" and re.search(r"\n\s*\n", text):
+            passages = citing_passages(source, lines, index + 1, end)
+            section["related"].extend(p["selector"] for p in passages)
+        yield section
+        yield from passages
+        if value is not None:
+            yield from prose_passages(source, lines, index + 1, end)
 
 
 def review_entry(reader, report, document):
@@ -223,7 +248,8 @@ def cited_resources(reader, source, excerpts):
     """Index local inline citations as declarations at this document version, without reading targets."""
     resources = {}
     for excerpt in excerpts:
-        if excerpt["kind"] == "document":
+        # A section with indexed paragraphs supplies context. Its paragraphs own the citations.
+        if excerpt["related"]:
             continue
         for link in INLINE_LINK.finditer(excerpt["text"]):
             try:
@@ -266,12 +292,15 @@ def collect(reader, document, review=None, *, trace_citations=True):
         reader.partial("Document text is unavailable; inspect the source for locators and passages.")
     else:
         excerpts = list(document_entries(source, lines))
+        if all(e["details"]["basis"] == "author annotation" for e in excerpts):
+            item["text"] = "\n".join(lines).strip()
+            # Target the citing paragraph. An edge to the file would also reach unrelated claims.
+            if trace_citations:
+                excerpts.extend(citing_passages(source, lines, 0, len(lines)))
         entries.extend(excerpts)
         item["related"].extend(e["selector"] for e in excerpts)
         if trace_citations:
             entries.extend(cited_resources(reader, source, excerpts))
-        if not excerpts:
-            item["text"] = "\n".join(lines).strip()
     if review is None:
         item["details"]["review"] = "No separate review supplied."
         return entries

@@ -9,7 +9,7 @@
     {
       "name": "research",
       "source": ".",
-      "version": "0.11.2",
+      "version": "0.11.3",
       "strict": false,
       "description": "Epistemic control for empirical research with prospective scientific/executable commitments, bounded semantic assessments, capability policy, append-only provenance and adversarial review."
     },
