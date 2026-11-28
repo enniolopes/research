@@ -120,6 +120,44 @@ class ViewCliTests(unittest.TestCase):
             self.assertEqual(report["snapshot"]["id"], json.loads(fresh.stdout)["snapshot"]["id"])
             self.assertEqual(list(root.iterdir()), [document])
 
+    def test_resume_follows_unclassified_prose_beyond_the_status_preview(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            document = root / "RESEARCH-STUDY.md"
+            decision = "Encerrar a contagem e conferir a origem do segundo relato."
+            document.write_text("A comparação só vale para os relatos disponíveis.\n\n"
+                                "## Como interpretar a diferença?\n" + "Contexto. " * 40 + decision)
+            args = ("--root", root, "--audience", "model", "--format", "json")
+            status = json.loads(self.invoke("status", *args).stdout)
+            groups = {g["title"]: g for g in status["overview"]}
+            self.assertFalse(groups["Next action"]["selectors"])
+            self.assertNotIn("No next action recorded", groups["Next action"]["gap"])
+            entries = {e["selector"]: e for e in status["entries"]}
+            passages = [entries[key] for key in groups["Source passages"]["selectors"]]
+            self.assertEqual([e["locator"] for e in passages], ["L1", "L3"])
+            self.assertNotIn(decision, str(status))
+            explanation = json.loads(self.invoke("explain", passages[1]["selector"], *args).stdout)
+            self.assertIn(decision, explanation["entries"][0]["text"])
+            self.assertEqual(passages[1]["version"], explanation["entries"][0]["version"])
+
+    def test_unclassified_prose_survives_inline_fields_and_claim_annotations(self):
+        with tempfile.TemporaryDirectory() as directory:
+            document = Path(directory) / "account.md"
+            args = ("--document", document, "--audience", "model", "--format", "json")
+            for body, expected in [
+                ("Question: Which account?\n\nRevisit the attribution.\n## Archive\nFiled.",
+                 "Revisit the attribution."),
+                ("Earlier account.\nThey agreed. <!-- claim:C1 result:R1 -->\n\nRevisit the attribution.",
+                 "Earlier account.\nThey agreed. <!-- claim:C1 result:R1 -->\n\nRevisit the attribution."),
+            ]:
+                with self.subTest(body=body):
+                    document.write_text(body)
+                    status = json.loads(self.invoke("status", *args).stdout)
+                    passages = [e for e in status["entries"] if e["kind"] == "document" and e.get("text")]
+                    self.assertTrue(passages)
+                    full = json.loads(self.invoke("explain", passages[0]["selector"], *args).stdout)
+                    self.assertEqual(full["entries"][0]["text"], expected)
+
     def test_documentary_study_resumes_and_revises_only_cited_interpretation(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

@@ -1,6 +1,6 @@
 {
   "name": "research",
-  "version": "0.11.2",
+  "version": "0.11.3",
   "description": "Epistemic control system for empirical research: prospective scientific/executable commitments, bounded semantic assessments, explicit capability policy, append-only provenance, claim lineage and adversarial review.",
   "author": {
     "name": "Ennio Politi Lopes"

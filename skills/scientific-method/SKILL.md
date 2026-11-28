@@ -4,7 +4,7 @@ description: "Guide documentary inquiry and observational quantitative research:
 when_to_use: Use to start or continue a research, check status, review a manuscript, and before fitting a model, changing a frozen plan, citing a source, reporting a material result, writing a claim or publishing. Also use when a new hypothesis or method appears after data exposure or protocol freeze.
 license: CC-BY-NC-4.0
 metadata:
-  version: 0.11.2
+  version: 0.11.3
 argument-hint: '<start <question> | status | review [manuscript] | replay RUN-<n> | what you want to do>'
 ---
 
@@ -51,6 +51,8 @@ The eight research phases below remain the lifecycle/navigation layer. Preflight
 - anything else — answer the user's normal research request, but run the applicable preflight before a consequential action.
 
 A status, explanation or impact request uses only the view, including on the first turn in an existing study. Report any coverage limits it returns. Opening raw artifacts or running validators to fill a gap can expose restricted or blinded outcomes.
+
+When a status field is empty or a preview cuts off the reasoning, use `view explain` on relevant passage selectors with the same input and model audience. Cite the passage that records the conclusion, its limits or the next action. If the available passages leave a decision open, say what is unresolved and distinguish any suggestion of your own from a recorded action.
 
 For an existing documentary inquiry, resume its study document through the view. When beginning active research work in an existing native study, invoke `research-map resume` and its fast integrity checks. Run full validation before commits, native review and release. Update the map only on observable state changes.
 

@@ -4,7 +4,7 @@ description: Operational memory and mechanical validation across sessions for on
 when_to_use: Use internally at the start of an existing research session, after gate/hypothesis/registration/corrected-number changes, and before commits or release. Direct triggers include resume, status, validate, update the map, or initialize an existing research.
 license: CC-BY-NC-4.0
 metadata:
-  version: 0.11.2
+  version: 0.11.3
 argument-hint: 'status|init|resume|update|validate [path to study]'
 ---
 

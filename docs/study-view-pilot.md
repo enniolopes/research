@@ -4,6 +4,10 @@ This proposed pilot asks whether an agent makes better revision decisions when i
 
 ## Cases and conditions
 
+Before freezing the protocol, calibrate the end-to-end status request on development cases with a consequential correction, an irrelevant edit and loss of decisive evidence. Include decisions expressed in ordinary prose beyond a status preview. Repeat the same question in fresh sessions under fixed settings and record whether each answer cites the decisive passage, preserves independent support and recovers the recorded next action or recognizes deferral. Report agreement and critical errors across attempts per case. Keep these runs separate from the reserved-case comparison below.
+
+These repetitions assess consistency on the sampled tasks. A claim that the workflow improves revision decisions requires a comparison with another way of doing the same work. A claim about a second host requires observations on that host. [Mohammadi et al., §3.3](https://doi.org/10.1145/3711896.3736570) · [Salaudeen et al., §4](https://arxiv.org/abs/2505.10573v4)
+
 Reserve 48 independent study cases spanning early projects, executed quantitative studies and incomplete external manuscripts. Each case supplies an original study and one update. Include numerical corrections, changes in a measure's meaning, new rival explanations and irrelevant edits. Include surviving independent support, shared assumptions and cases where the available evidence warrants deferral. A study and its update form one scoring unit.
 
 Run every case in three fresh agent sessions, one per condition, in randomized order. Ask the same question about what changed, which conclusions survive and what to do next.

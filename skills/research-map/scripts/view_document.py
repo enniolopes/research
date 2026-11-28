@@ -140,6 +140,14 @@ def visible_lines(reader, source, lines):
     return filtered, withheld
 
 
+def unclassified_passage(source, lines, start, end):
+    for index in range(start, end):
+        if lines[index].strip():
+            yield source.entry("document", f"Author — passage at L{index + 1}", f"L{index + 1}",
+                               text="\n".join(lines[index:end]).strip(), basis="author-reported text")
+            return
+
+
 def document_entries(source, lines):
     """Index explicit source structure. Source prose is never a reviewer verdict."""
     blocks = []
@@ -168,6 +176,8 @@ def document_entries(source, lines):
             yield source.entry("claim", f"Author — {claim.upper()}", f"{locator}:{annotation.start() + 1}",
                                text=excerpt, aliases=[claim.upper()], basis="author annotation",
                                reported_result=result.upper(), reported_hypothesis=decides or None)
+    if blocks:
+        yield from unclassified_passage(source, lines, 0, blocks[0][0])
     for position, (index, title, anchor, value) in enumerate(blocks):
         end = blocks[position + 1][0] if position + 1 < len(blocks) else len(lines)
         text = value if value is not None else "\n".join(lines[index + 1:end]).strip()
@@ -177,6 +187,8 @@ def document_entries(source, lines):
             aliases.append(title.upper())
         yield source.entry(kind, f"Author — {title}", f"L{index + 1}", text=text,
                            aliases=aliases, basis="author-reported text")
+        if value is not None:
+            yield from unclassified_passage(source, lines, index + 1, end)
 
 
 def review_entry(reader, report, document):
@@ -270,7 +282,8 @@ def collect(reader, document, review=None, *, trace_citations=True):
         item["related"].extend(e["selector"] for e in excerpts)
         if trace_citations:
             entries.extend(cited_resources(reader, source, excerpts))
-        if not excerpts:
+        # Inline claim annotations can coexist with otherwise unstructured prose.
+        if all(e["details"]["basis"] == "author annotation" for e in excerpts):
             item["text"] = "\n".join(lines).strip()
     if review is None:
         item["details"]["review"] = "No separate review supplied."
