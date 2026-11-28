@@ -3,7 +3,7 @@ name: research-graph
 description: Derive and query claim/result/run/test/data lineage from authoritative research artifacts. Internal navigation utility; it writes no source-of-truth or cache.
 license: CC-BY-NC-4.0
 metadata:
-  version: 0.11.0
+  version: 0.11.1
 argument-hint: '<build | trace NODE | why NODE | changed NODE> [RESEARCH.map]'
 ---
 
@@ -28,12 +28,12 @@ Material claim annotations are:
 
 Legacy annotations containing `inference:I<n>` are accepted but the inference token is ignored; it never carried an independent artifact. Scientific adequacy of the bridge from result/design/checks to wording remains reviewer judgement.
 
-Useful queries:
+Run these queries from the study directory. Set `RESEARCH_GRAPH_DIR` to the absolute parent directory of this installed `SKILL.md` as located by the host. In Claude Code you can use `RESEARCH_GRAPH_DIR="${CLAUDE_SKILL_DIR}"` while this skill is active.
 
 ```bash
-python3 "${CLAUDE_SKILL_DIR}/scripts/graph.py" trace C1 RESEARCH.map
-python3 "${CLAUDE_SKILL_DIR}/scripts/graph.py" why T1 RESEARCH.map
-python3 "${CLAUDE_SKILL_DIR}/scripts/graph.py" changed DATA1 RESEARCH.map
+python3 "${RESEARCH_GRAPH_DIR}/scripts/graph.py" trace C1 RESEARCH.map
+python3 "${RESEARCH_GRAPH_DIR}/scripts/graph.py" why T1 RESEARCH.map
+python3 "${RESEARCH_GRAPH_DIR}/scripts/graph.py" changed DATA1 RESEARCH.map
 ```
 
 `trace` walks a claim toward executed evidence and planned test. `why` walks prerequisites. `changed` reports candidate downstream consequences after a changed datum/result/assumption; it is navigation, never automatic invalidation.

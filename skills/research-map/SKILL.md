@@ -4,7 +4,7 @@ description: Operational memory and mechanical validation across sessions for on
 when_to_use: Use internally at the start of an existing research session, after gate/hypothesis/registration/corrected-number changes, and before commits or release. Direct triggers include resume, status, validate, update the map, or initialize an existing research.
 license: CC-BY-NC-4.0
 metadata:
-  version: 0.11.0
+  version: 0.11.1
 argument-hint: 'status|init|resume|update|validate [path to study]'
 ---
 
@@ -28,7 +28,7 @@ Fixed sections, in order:
 | `## Question` | question pointer; `Problem:` state/brief; `Registration:` state |
 | `## Hypotheses` | prediction, refutation, terminal state and pointer; keep the active portfolio intentionally small |
 | `## Gates` | one row for 1A, 1B and phases 2–8; state plus evidence for every reached gate |
-| `## Deferred` | post-freeze ideas not admitted, dated with entry condition |
+| `## Deferred` | ideas set aside during exploration or after freeze, dated with entry condition |
 | `## Last session` | dated state changes and exactly one `Next:` line |
 
 Do not add analysis-plan contents, run manifests or graph edges to the map. `analysis-plan.md` is authoritative for analytic commitment; `.research/runs/` for executions; `research-graph` derives lineage.
@@ -45,13 +45,13 @@ A stale map never outranks current executable/source evidence. If map narrative 
 
 ## Study views
 
-From the study directory, use the installed dispatcher to inspect recorded material offline. In a terminal, set `CLAUDE_SKILL_DIR` to the path of the plugin's `skills/research-map` directory. For any output sent to a model, select `--audience model` in either format. Use `--audience local` for direct human inspection. Apply the study's [capability policy](reference/capability-policy.md) to sources and quoted material.
+From the study directory, use the installed dispatcher to inspect recorded material offline. In the commands below, set `RESEARCH_MAP_DIR` to the absolute parent directory of this installed `SKILL.md`. Resolve it from the skill path supplied by your host. In Claude Code you can use `RESEARCH_MAP_DIR="${CLAUDE_SKILL_DIR}"` while this skill is active. Keep the study as the working directory. For any output sent to a model, select `--audience model` in either format. Use `--audience local` for direct human inspection. Apply the study's [capability policy](reference/capability-policy.md) to sources and quoted material.
 
 For status, explanation and impact, answer solely from the view, including when coverage is partial or a source is unsupported. The view applies source permissions and phase boundaries. Opening the map, manuscripts or results separately, invoking operational resume or running validators to complete the answer can expose blinded or restricted outcomes.
 
 ```bash
-python3 "${CLAUDE_SKILL_DIR}/scripts/research.py" view status --root . --audience model
-python3 "${CLAUDE_SKILL_DIR}/scripts/research.py" view explain C1 --root . --audience model --format json
+python3 "${RESEARCH_MAP_DIR}/scripts/research.py" view status --root . --audience model
+python3 "${RESEARCH_MAP_DIR}/scripts/research.py" view explain C1 --root . --audience model --format json
 ```
 
 The status field describes query coverage. A scientific judgment needs a source, scope and author. Use the selector from the response when a short ID identifies several occurrences. For a changed study resource, pass its selector to `view impact` with the same root and audience. Inspect the reported support paths, remaining evidence and coverage before recording a revised judgment. A newly discovered dependency may need to be recorded first.
@@ -67,7 +67,7 @@ Update only on observable events: gate state/evidence changed, hypothesis termin
 Run the composed 0.11 validator:
 
 ```bash
-python3 "${CLAUDE_SKILL_DIR}/scripts/validate_all.py" RESEARCH.map --offline
+python3 "${RESEARCH_MAP_DIR}/scripts/validate_all.py" RESEARCH.map --offline
 ```
 
 Structural checks:
@@ -93,7 +93,7 @@ A check with nothing to examine reports `NOT_VERIFIED`, never `PASS`. Exit is no
 Use `--only` to isolate checks, for example:
 
 ```bash
-python3 "${CLAUDE_SKILL_DIR}/scripts/validate_all.py" RESEARCH.map --offline --only plan,runs,lineage,exposure
+python3 "${RESEARCH_MAP_DIR}/scripts/validate_all.py" RESEARCH.map --offline --only plan,runs,lineage,exposure
 ```
 
 Mechanical `PASS` means only that those invariants passed. It never means the design, method or claim is scientifically true.
@@ -101,7 +101,7 @@ Mechanical `PASS` means only that those invariants passed. It never means the de
 For a run with a recorded replay recipe, computational regeneration is a separate check:
 
 ```bash
-python3 "${CLAUDE_SKILL_DIR}/scripts/replay.py" RUN-4 --root .
+python3 "${RESEARCH_MAP_DIR}/scripts/replay.py" RUN-4 --root .
 ```
 
 It returns `EXACT`, `DRIFT`, `ERROR`, or `NOT_VERIFIED`. Replay is useful evidence, not a prerequisite for a scientifically valid run; restricted data, expensive computation or unavailable historical environments may legitimately remain `NOT_VERIFIED`.

@@ -1,6 +1,9 @@
 """Instruction navigation must resolve in the installed plugin, not the project."""
+import os
 from pathlib import Path
 import re
+import subprocess
+import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -17,6 +20,24 @@ class InstructionTopologyTests(unittest.TestCase):
                 self.assertRegex(status.group(), r"view status\b[^`\n]*--audience model\b")
                 self.assertNotRegex(status.group(), r"resume and validate|validate_all|supervise resume")
                 self.assertNotIn("before the first research action", instructions.lower())
+
+    def test_documented_status_runs_from_study_without_host_variables(self):
+        skill = ROOT / "skills/research-map"
+        example, = (line for line in (skill / "SKILL.md").read_text().splitlines()
+                    if line.startswith("python3 ") and " view status " in line)
+        with tempfile.TemporaryDirectory(prefix="research study ") as tmp:
+            study = Path(tmp)
+            (study / "RESEARCH.map").write_text(
+                "## Layout\n- protocol: protocol.md\n## Question\n"
+                "Timing? → `protocol.md#question`\n## Last session\n- Next: Obtain timestamps.\n")
+            (study / "protocol.md").write_text("## Question\nAre departures late?\n")
+            env = {**os.environ, "RESEARCH_MAP_DIR": str(skill)}
+            env.pop("CLAUDE_SKILL_DIR", None)
+            result = subprocess.run(["sh", "-c", example], cwd=study, env=env,
+                                    text=True, capture_output=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("Are departures late?", result.stdout)
+            self.assertIn("Obtain timestamps.", result.stdout)
 
     def test_phase_and_skill_reference_paths_resolve(self):
         surfaces = list((ROOT / "skills").glob("*/SKILL.md"))
