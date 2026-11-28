@@ -11,7 +11,7 @@ Use for a third-party paper, report or historical study without this system's na
 
 Start the user-facing review with the question, conclusion allowed by available evidence, decisive support, main limitation and next resolving action. Follow with claim-level findings and exact locations. Overall verdicts must not conceal that different claims have different evidential status.
 
-Apply the discipline appropriate to the actual design. Do not impose observational reporting checklists on unrelated designs or claim expertise beyond the material inspected. Material unfamiliar methodology requires primary-source inspection or specialist review; localize that limit rather than blocking unrelated findings.
+When the review turns on a design-specific quality criterion, consult [how to choose criteria for the question and design](inference-and-revision.md#choose-criteria-for-the-question-and-design). Do not impose observational reporting checklists on unrelated designs or claim expertise beyond the material inspected. Material unfamiliar methodology requires primary-source inspection or specialist review; localize that limit rather than blocking unrelated findings.
 
 ## Resume an external review from the study directory
 
