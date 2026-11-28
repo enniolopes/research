@@ -2,6 +2,26 @@
 
 Read when a claim interprets a measure, attributes a mechanism, compares explanations, or must be revised after evidence changes. Store the work in the existing protocol/analysis plan, manuscript inference and decision log; do not create a parallel knowledge ledger.
 
+## Start a documentary inquiry
+
+Use this route when the question concerns the meaning of an identifiable set of sources. A numerical question such as how often a population holds a view still needs an appropriate sample and design, even when the input consists of interviews.
+
+Start with the question, the available corpus and why those sources can speak to it. If the sources have yet to be obtained, record the gap and the next feasible action. Keep the working account in `RESEARCH-STUDY.md` at the study root. In an existing project, resume its current records before choosing where to write. Use headings such as Question, Method, C1, C2, Uncertainty and Next action when there is something to report. Early work may consist of just the question and next action.
+
+For each material interpretation, cite the passage using an inline Markdown link to the local source and a locator such as the speaker turn or section. Explain whose words they are, your reasoning and its scope. Check a conflicting passage or plausible alternative when available. Cite all material origins in the section that uses them so the study policy can be applied. Use authorized material throughout. Version the account and the sources or their permitted references in Git.
+
+On a correction, use the study view's impact query to locate candidate interpretations. Inspect the corrected passage in context before updating the account. Preserve separately supported readings and leave a reason for the revision in the study history. Seek separate-context review before releasing material claims. The study view supports navigation here; quantitative validators and run receipts apply when there is an actual quantitative analysis.
+
+## Choose criteria for the question and design
+
+When a methodological choice could change the answer, identify the claim at stake and what would justify it under the study's approach. The National Research Council develops two useful principles for empirical education research: choose a method capable of investigating the question and make the reasoning from evidence to conclusion explicit. In qualitative psychology, Levitt and colleagues assess methodological integrity through fidelity to the phenomenon and usefulness for the study's goals. [National Research Council, chapter 3](https://www.nationalacademies.org/read/10236/chapter/5) · [Levitt et al.](https://doi.org/10.1037/qup0000082)
+
+For example, before criticizing a thematic analysis for lacking agreement between coders, identify the approach the authors used. In reflexive thematic analysis, examine how the researchers developed their interpretation and how the material supports it. Applying a coding-reliability criterion here can misjudge the work. [Braun and Clarke](https://doi.org/10.1080/14780887.2020.1769238)
+
+When appraising empirical studies in a mixed studies review, the MMAT starts with the clarity of the question and the capacity of the collected data to answer it. Then use the criteria for the relevant design, including integration when appraising mixed methods. Its development study examined the content validity of appraisal criteria. [MMAT user guide](https://bmjopen.bmj.com/content/bmjopen/11/2/e039246/DC3/embed/inline-supplementary-material-3.pdf) · [Hong et al.](https://pubmed.ncbi.nlm.nih.gov/30905698/)
+
+If a source informs a material choice, cite the passage you inspected in the existing plan, decision or review and explain why it applies here. Use the study's own material to support its findings.
+
 ## Make the inferential bridge inspectable
 
 Before adopting an interpretation, distinguish the observation from what it is said to mean. In the claim's interpretation boundary or nearby manuscript reasoning, record only the links material to this claim:

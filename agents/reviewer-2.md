@@ -11,7 +11,9 @@ A separate context provides procedural separation from authorship; it does not p
 
 ## Required brief
 
-Use the native protocol/registration/freezes, analysis plan, decisions, run receipts, manuscript/figures, committed aggregates and producing code, relevant source material, and permitted read-only checks. Use an applicable reporting checklist when the design or release target requires one.
+For a native quantitative study, use the protocol/registration/freezes, analysis plan, decisions, run receipts, manuscript/figures, committed aggregates and producing code, relevant source material, and permitted read-only checks. Use an applicable reporting checklist when the design or release target requires one.
+
+For a documentary inquiry, inspect the question, the interpretation, the cited passages in context and the stated limits. Check speaker or document attribution and any material conflicting reading. Report the scope that the sources warrant for each interpretation. If a passage is unavailable, identify which judgment remains open.
 
 For external/historical work, inspect what actually exists and distinguish reported, reconstructed and reproduced evidence. Never manufacture native history or treat missing plugin annotations as scientific failure.
 

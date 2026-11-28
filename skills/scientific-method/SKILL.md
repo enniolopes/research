@@ -1,16 +1,16 @@
 ---
 name: scientific-method
-description: "Orchestrate observational quantitative research as an epistemic control system: formulate and test the problem first, explore before commitment, freeze consequential choices before result exposure, execute against identified evidence, require claim lineage, and challenge material claims in a separate review context. This is the single public entry point; it delegates exploration, statistical planning, memory, graph lineage and review internally."
+description: "Guide documentary inquiry and observational quantitative research: formulate the question, inspect evidence, justify the scope of claims and revisit them when sources change. For quantitative confirmation, freeze consequential choices before result exposure. This is the single public entry point; it delegates exploration, statistical planning, memory, graph lineage and review internally."
 when_to_use: Use to start or continue a research, check status, review a manuscript, and before fitting a model, changing a frozen plan, citing a source, reporting a material result, writing a claim or publishing. Also use when a new hypothesis or method appears after data exposure or protocol freeze.
 license: CC-BY-NC-4.0
 metadata:
-  version: 0.11.1
+  version: 0.11.2
 argument-hint: '<start <question> | status | review [manuscript] | replay RUN-<n> | what you want to do>'
 ---
 
 # Scientific method
 
-Own the epistemic lifecycle of an empirical research project. Scope: observational quantitative research with administrative data. Other designs may reuse the kernel, but phase procedures in this version are written for this scope.
+Own the epistemic lifecycle of an empirical research project. The native phases support observational quantitative research, especially administrative data. A documentary inquiry can start from a question about what particular sources say or mean and keep its reasoning in a single study document.
 
 This is the public entry point. The user talks to this skill; internal skills and agents are invoked as needed. Do not make the user operate the architecture.
 
@@ -28,7 +28,7 @@ These laws generate the detailed rules. Do not add a second prose rule when an i
 
 ## Five operations
 
-The behavioral kernel is:
+In a native quantitative study these operations take the following form:
 
 ```text
 EXPLORE → COMMIT → EXECUTE → JUSTIFY → CHALLENGE
@@ -44,7 +44,7 @@ The eight research phases below remain the lifecycle/navigation layer. Preflight
 
 ## Arguments and session UX
 
-- `start <question>` — start phase 1. In a new study, use the supplied question and available material to establish the protocol question and first material decision, then initialize the map from them with one concrete next action. In an existing study, resume its recorded work before adding a question. Preserve its prior decisions.
+- `start <question>` — choose the route by the answer sought. For an interpretation of documents or accounts, follow [documentary inquiry](reference/inference-and-revision.md#start-a-documentary-inquiry). For a new quantitative study, start phase 1, establish the protocol question and first material decision, then initialize the map with one concrete next action. In any existing study, resume its current records and honor its controls before adding a question.
 - `status` — run `view status --root . --audience model` directly through the installed research-map dispatcher. For a standalone manuscript, use `--document FILE` in place of `--root .`. Summarize the question, recorded conclusion, uncertainty and next action from the returned entries. Use the same audience for explanation and impact queries. [Study views](../research-map/SKILL.md#study-views)
 - `review [path]` — run phase 7 for native work; use `reference/external-review.md` for third-party or historical work without native artifacts.
 - `replay RUN-<n>` — invoke the research-map replay helper when the run records a replay recipe; report `EXACT | DRIFT | ERROR | NOT_VERIFIED` without treating replay status as scientific truth.
@@ -52,7 +52,7 @@ The eight research phases below remain the lifecycle/navigation layer. Preflight
 
 A status, explanation or impact request uses only the view, including on the first turn in an existing study. Report any coverage limits it returns. Opening raw artifacts or running validators to fill a gap can expose restricted or blinded outcomes.
 
-When beginning active research work in an existing repository, invoke `research-map resume` and its fast integrity checks. Run full validation before commits, native review and release. Update the map only on observable state changes.
+For an existing documentary inquiry, resume its study document through the view. When beginning active research work in an existing native study, invoke `research-map resume` and its fast integrity checks. Run full validation before commits, native review and release. Update the map only on observable state changes.
 
 When a supervised inquiry already exists or an active study needs a durable decision across sessions, use [inquiry state](../research-map/reference/inquiry.md). Resume at the current criterion, select a feasible action and record the observed effect. Carry out consequential actions through the phase's supervisory procedure.
 

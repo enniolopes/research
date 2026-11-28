@@ -2,6 +2,8 @@
 
 Use when starting, materially reformulating, or reopening the research question. The aim is not to perfect wording; it is to establish a falsifiable question and verify that any empirical premise needed to justify the study is actually established.
 
+When choosing among plausible designs turns on a methodological criterion, consult [how to choose criteria for the question and design](inference-and-revision.md#choose-criteria-for-the-question-and-design).
+
 ## Gate 1A — formulate
 
 1. Log an exploration budget: breadth, stopping condition and material constraints.
